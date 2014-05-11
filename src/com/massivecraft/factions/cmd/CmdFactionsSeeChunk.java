@@ -14,14 +14,24 @@ import com.massivecraft.mcore.ps.PSFormatHumanSpace;
 
 public class CmdFactionsSeeChunk extends FCommand
 {
+	// -------------------------------------------- //
+	// CONSTRUCT
+	// -------------------------------------------- //
+	
 	public CmdFactionsSeeChunk()
 	{
+		// Aliases
 		this.addAliases("sc", "seechunk");
-		
-		//this.addRequirements(ReqFactionsEnabled.get());
+
+		// Requirements
+		// this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.SEE_CHUNK.node));
 		this.addRequirements(ReqIsPlayer.get());
 	}
+
+	// -------------------------------------------- //
+	// OVERRIDE
+	// -------------------------------------------- //
 	
 	@Override
 	public void perform()
@@ -56,12 +66,13 @@ public class CmdFactionsSeeChunk extends FCommand
 		msg("<i>Visualized %s", chunk.toString(PSFormatHumanSpace.get()));
 	}
 	
+	@SuppressWarnings("deprecation")
 	public static void showPillar(Player player, World world, int blockX, int blockZ)
 	{
 		for (int blockY = 0; blockY < world.getMaxHeight(); blockY++)
 		{
 			Location loc = new Location(world, blockX, blockY, blockZ);
-			if (loc.getBlock().getTypeId() != 0) continue;
+			if (loc.getBlock().getType() != Material.AIR) continue;
 			int typeId = blockY % 5 == 0 ? Material.GLOWSTONE.getId() : Material.GLASS.getId();
 			VisualizeUtil.addLocation(player, loc, typeId);
 		}

@@ -84,6 +84,12 @@ public class UConf extends Entity<UConf>
 	public Map<FPerm, Set<Rel>> defaultFactionPerms = FPerm.getDefaultDefaults();
 
 	// -------------------------------------------- //
+	// MESSAGES
+	// -------------------------------------------- //
+	
+	public boolean broadcastNameChange = false;
+	
+	// -------------------------------------------- //
 	// POWER
 	// -------------------------------------------- //
 	
@@ -135,10 +141,10 @@ public class UConf extends Entity<UConf>
 	// -------------------------------------------- //
 	
 	public boolean permanentFactionsDisableLeaderPromotion = false;
-	public int actionDeniedPainAmount = 2;
+	public double actionDeniedPainAmount = 2.0D;
 	public boolean disablePVPForFactionlessPlayers = false;
 	public boolean enablePVPAgainstFactionlessInAttackersLand = false;
-	public double territoryShieldFactor = 0.3;
+	public double territoryShieldFactor = 0.3D;
 	
 	// -------------------------------------------- //
 	// DENY COMMANDS
@@ -150,14 +156,49 @@ public class UConf extends Entity<UConf>
 	// commands which will be prevented when in claimed territory of another faction
 	public Map<Rel, List<String>> denyCommandsTerritoryRelation = MUtil.map(
 		Rel.ENEMY, MUtil.list(
+			// Essentials commands
 			"home",
+			"homes",
 			"sethome",
+			"createhome",
 			"tpahere",
 			"tpaccept",
+			"tpyes",
 			"tpa",
+			"call",
+			"tpask",
 			"warp",
 			"warps",
 			"spawn",
+			// Essentials e-alliases
+			"ehome",
+			"ehomes",
+			"esethome",
+			"ecreatehome",
+			"etpahere",
+			"etpaccept",
+			"etpyes",
+			"etpa",
+			"ecall",
+			"etpask",
+			"ewarp",
+			"ewarps",
+			"espawn",
+			// Essentials fallback alliases
+			"essentials:home",
+			"essentials:homes",
+			"essentials:sethome",
+			"essentials:createhome",
+			"essentials:tpahere",
+			"essentials:tpaccept",
+			"essentials:tpyes",
+			"essentials:tpa",
+			"essentials:call",
+			"essentials:tpask",
+			"essentials:warp",
+			"essentials:warps",
+			"essentials:spawn",
+			// Other plugins
 			"wtp",
 			"uspawn",
 			"utp",

@@ -15,20 +15,30 @@ import com.massivecraft.mcore.util.Txt;
 
 import org.bukkit.ChatColor;
 
-
 public class CmdFactionsMoneyDeposit extends FCommand
 {
+	// -------------------------------------------- //
+	// CONSTRUCT
+	// -------------------------------------------- //
+	
 	public CmdFactionsMoneyDeposit()
 	{
+		// Aliases
 		this.addAliases("d", "deposit");
-		
+
+		// Args
 		this.addRequiredArg("amount");
 		this.addOptionalArg("faction", "you");
-		
+
+		// Requirements
 		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.MONEY_DEPOSIT.node));
 		this.addRequirements(ReqBankCommandsEnabled.get());
 	}
+
+	// -------------------------------------------- //
+	// OVERRIDE
+	// -------------------------------------------- //
 	
 	@Override
 	public void perform()
@@ -43,7 +53,7 @@ public class CmdFactionsMoneyDeposit extends FCommand
 		
 		if (success && MConf.get().logMoneyTransactions)
 		{
-			Factions.get().log(ChatColor.stripColor(Txt.parse("%s deposited %s in the faction bank: %s", usender.getName(), Money.format(usender, amount), faction.describeTo(null))));
+			Factions.get().log(ChatColor.stripColor(Txt.parse("%s deposited %s in the faction bank: %s", usender.getName(), Money.format(amount), faction.describeTo(null))));
 		}
 	}
 	

@@ -18,18 +18,29 @@ import org.bukkit.ChatColor;
 
 public class CmdFactionsMoneyTransferFf extends FCommand
 {
+	// -------------------------------------------- //
+	// CONSTRUCT
+	// -------------------------------------------- //
+	
 	public CmdFactionsMoneyTransferFf()
 	{
+		// Aliases
 		this.addAliases("ff");
-		
+
+		// Args
 		this.addRequiredArg("amount");
 		this.addRequiredArg("faction");
 		this.addRequiredArg("faction");
-		
+
+		// Requirements
 		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.MONEY_F2F.node));
 		this.addRequirements(ReqBankCommandsEnabled.get());
 	}
+
+	// -------------------------------------------- //
+	// OVERRIDE
+	// -------------------------------------------- //
 	
 	@Override
 	public void perform()
@@ -47,7 +58,8 @@ public class CmdFactionsMoneyTransferFf extends FCommand
 
 		if (success && MConf.get().logMoneyTransactions)
 		{
-			Factions.get().log(ChatColor.stripColor(Txt.parse("%s transferred %s from the faction \"%s\" to the faction \"%s\"", usender.getName(), Money.format(from, amount), from.describeTo(null), to.describeTo(null))));
+			Factions.get().log(ChatColor.stripColor(Txt.parse("%s transferred %s from the faction \"%s\" to the faction \"%s\"", usender.getName(), Money.format(amount), from.describeTo(null), to.describeTo(null))));
 		}
 	}
+	
 }

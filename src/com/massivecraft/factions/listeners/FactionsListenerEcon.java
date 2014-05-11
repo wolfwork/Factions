@@ -83,9 +83,9 @@ public class FactionsListenerEcon implements Listener
 		Faction faction = event.getFaction();
 	
 		double amount = Money.get(faction);
-		String amountString = Money.format(faction, amount);
+		String amountString = Money.format(amount);
 		
-		Econ.transferMoney(usender, faction, usender, amount, true);
+		Econ.transferMoney(faction, usender, usender, amount, true);
 		
 		usender.msg("<i>You have been given the disbanded faction's bank, totaling %s.", amountString);
 		Factions.get().log(usender.getName() + " has been given bank holdings of "+amountString+" from disbanding "+faction.getName()+".");

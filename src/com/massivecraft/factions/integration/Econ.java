@@ -21,7 +21,7 @@ public class Econ
 	// TODO: Could we not have it enabled as long as Money.enabled is true?
 	public static boolean isEnabled(Object universe)
 	{
-		return UConf.get(universe).econEnabled && Money.enabled(universe);
+		return UConf.get(universe).econEnabled && Money.enabled();
 	}
 	
 	// -------------------------------------------- //
@@ -59,14 +59,14 @@ public class Econ
 		if (uconf.econUniverseAccount == null) return;
 		if (uconf.econUniverseAccount.length() == 0) return;
 		
-		if (!Money.exists(universe, uconf.econUniverseAccount)) return;
+		if (!Money.exists(uconf.econUniverseAccount)) return;
 
-		Money.add(universe, uconf.econUniverseAccount, delta);
+		Money.spawn(uconf.econUniverseAccount, null, delta);
 	}
 
 	public static void sendBalanceInfo(UPlayer to, EconomyParticipator about)
 	{
-		to.msg("<a>%s's<i> balance is <h>%s<i>.", about.describeTo(to, true), Money.format(about, Money.get(about)));
+		to.msg("<a>%s's<i> balance is <h>%s<i>.", about.describeTo(to, true), Money.format(Money.get(about)));
 	}
 
 	public static boolean canIControllYou(EconomyParticipator i, EconomyParticipator you)
@@ -96,15 +96,14 @@ public class Econ
 		}
 		
 		// Otherwise you may not! ;,,;
-		i.msg("<h>%s<i> lacks permission to control <h>%s's<i> money.", i.describeTo(i, true), you.describeTo(i));
 		return false;
 	}
 	
 	public static boolean transferMoney(EconomyParticipator invoker, EconomyParticipator from, EconomyParticipator to, double amount)
 	{
-		return transferMoney(invoker, from, to, amount, true);
+		return transferMoney(from, to, invoker, amount, true);
 	}
-	public static boolean transferMoney(EconomyParticipator invoker, EconomyParticipator from, EconomyParticipator to, double amount, boolean notify)
+	public static boolean transferMoney(EconomyParticipator from, EconomyParticipator to, EconomyParticipator by, double amount, boolean notify)
 	{
 		if (!isEnabled(from)) return false;
 
@@ -119,44 +118,41 @@ public class Econ
 		}
 		
 		// Check the rights
-		if ( ! canIControllYou(invoker, from)) return false;
+		if ( ! canIControllYou(by, from))
+		{
+			by.msg("<h>%s<i> lacks permission to control <h>%s's<i> money.", by.describeTo(by, true), from.describeTo(by));
+			return false;
+		}
 		
 		// Is there enough money for the transaction to happen?
 		if (Money.get(from) < amount)
 		{
 			// There was not enough money to pay
-			if (invoker != null && notify)
+			if (by != null && notify)
 			{
-				invoker.msg("<h>%s<b> can't afford to transfer <h>%s<b> to %s<b>.", from.describeTo(invoker, true), Money.format(from, amount), to.describeTo(invoker));
+				by.msg("<h>%s<b> can't afford to transfer <h>%s<b> to %s<b>.", from.describeTo(by, true), Money.format(amount), to.describeTo(by));
 			}
 			return false;
 		}
 		
 		// Transfer money
-		if (Money.subtract(from, amount))
+		if (Money.move(from, to, by, amount))
 		{
-			if (Money.add(to, amount))
+			if (notify)
 			{
-				if (notify)
-				{
-					sendTransferInfo(invoker, from, to, amount);
-				}
-				return true;
+				sendTransferInfo(by, from, to, amount);
 			}
-			else
-			{
-				// We failed. Try a rollback
-				Money.add(from, amount);
-			}
+			return true;
 		}
-		
-		// if we get here something with the transaction failed
-		if (notify)
+		else
 		{
-			invoker.msg("Unable to transfer %s<b> to <h>%s<b> from <h>%s<b>.", Money.format(from, amount), to.describeTo(invoker), from.describeTo(invoker, true));
+			// if we get here something with the transaction failed
+			if (by != null && notify)
+			{
+				by.msg("Unable to transfer %s<b> to <h>%s<b> from <h>%s<b>.", Money.format(amount), to.describeTo(by), from.describeTo(by, true));
+			}
+			return false;
 		}
-		
-		return false;
 	}
 	
 	public static Set<UPlayer> getUPlayers(EconomyParticipator ep)
@@ -190,28 +186,28 @@ public class Econ
 		{
 			for (UPlayer recipient : recipients)
 			{
-				recipient.msg("<h>%s<i> was transfered from <h>%s<i> to <h>%s<i>.", Money.format(from, amount), from.describeTo(recipient), to.describeTo(recipient));
+				recipient.msg("<h>%s<i> was transfered from <h>%s<i> to <h>%s<i>.", Money.format(amount), from.describeTo(recipient), to.describeTo(recipient));
 			}
 		}
 		else if (invoker == from)
 		{
 			for (UPlayer recipient : recipients)
 			{
-				recipient.msg("<h>%s<i> <h>gave %s<i> to <h>%s<i>.", from.describeTo(recipient, true), Money.format(from, amount), to.describeTo(recipient));
+				recipient.msg("<h>%s<i> <h>gave %s<i> to <h>%s<i>.", from.describeTo(recipient, true), Money.format(amount), to.describeTo(recipient));
 			}
 		}
 		else if (invoker == to)
 		{
 			for (UPlayer recipient : recipients)
 			{
-				recipient.msg("<h>%s<i> <h>took %s<i> from <h>%s<i>.", to.describeTo(recipient, true), Money.format(from, amount), from.describeTo(recipient));
+				recipient.msg("<h>%s<i> <h>took %s<i> from <h>%s<i>.", to.describeTo(recipient, true), Money.format(amount), from.describeTo(recipient));
 			}
 		}
 		else
 		{
 			for (UPlayer recipient : recipients)
 			{
-				recipient.msg("<h>%s<i> transfered <h>%s<i> from <h>%s<i> to <h>%s<i>.", invoker.describeTo(recipient, true), Money.format(from, amount), from.describeTo(recipient), to.describeTo(recipient));
+				recipient.msg("<h>%s<i> transfered <h>%s<i> from <h>%s<i> to <h>%s<i>.", invoker.describeTo(recipient, true), Money.format(amount), from.describeTo(recipient), to.describeTo(recipient));
 			}
 		}
 	}
@@ -224,7 +220,7 @@ public class Econ
 		{
 			if (toDoThis != null && !toDoThis.isEmpty())
 			{
-				ep.msg("<h>%s<i> can't afford <h>%s<i> %s.", ep.describeTo(ep, true), Money.format(ep, delta), toDoThis);
+				ep.msg("<h>%s<i> can't afford <h>%s<i> %s.", ep.describeTo(ep, true), Money.format(delta), toDoThis);
 			}
 			return false;
 		}
@@ -240,7 +236,7 @@ public class Econ
 		
 		boolean hasActionDesctription = (actionDescription != null && !actionDescription.isEmpty());
 
-		if (Money.add(ep, delta))
+		if (Money.spawn(ep, null, delta))
 		{
 			modifyUniverseMoney(ep, -delta);
 			
@@ -248,11 +244,11 @@ public class Econ
 			{
 				if (delta > 0)
 				{
-					ep.msg("<h>%s<i> gained <h>%s<i> since did %s.", You, Money.format(ep, delta), actionDescription);
+					ep.msg("<h>%s<i> gained <h>%s<i> since did %s.", You, Money.format(delta), actionDescription);
 				}
 				else
 				{
-					ep.msg("<h>%s<i> lost <h>%s<i> since did %s.", You, Money.format(ep, -delta), actionDescription);
+					ep.msg("<h>%s<i> lost <h>%s<i> since did %s.", You, Money.format(-delta), actionDescription);
 				}
 			}
 			return true;
@@ -263,11 +259,11 @@ public class Econ
 			{
 				if (delta > 0)
 				{
-					ep.msg("<h>%s<i> would have gained <h>%s<i> since did %s, but the deposit failed.", You, Money.format(ep, delta), actionDescription);
+					ep.msg("<h>%s<i> would have gained <h>%s<i> since did %s, but the deposit failed.", You, Money.format(delta), actionDescription);
 				}
 				else
 				{
-					ep.msg("<h>%s<i> can't afford <h>%s<i> to %s.", You, Money.format(ep, -delta), actionDescription);
+					ep.msg("<h>%s<i> can't afford <h>%s<i> to %s.", You, Money.format(-delta), actionDescription);
 				}
 			}
 			return false;

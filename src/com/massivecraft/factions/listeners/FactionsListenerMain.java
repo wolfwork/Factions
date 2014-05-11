@@ -2,8 +2,10 @@ package com.massivecraft.factions.listeners;
 
 import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -12,9 +14,9 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Wither;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -50,8 +52,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.projectiles.ProjectileSource;
 
-import com.massivecraft.factions.Const;
 import com.massivecraft.factions.FFlag;
 import com.massivecraft.factions.FPerm;
 import com.massivecraft.factions.Factions;
@@ -64,11 +66,13 @@ import com.massivecraft.factions.entity.MConf;
 import com.massivecraft.factions.entity.UConf;
 import com.massivecraft.factions.entity.UPlayerColl;
 import com.massivecraft.factions.entity.UPlayerColls;
+import com.massivecraft.factions.event.FactionsEventPvpDisallowed;
 import com.massivecraft.factions.event.FactionsEventPowerChange;
 import com.massivecraft.factions.event.FactionsEventPowerChange.PowerChangeReason;
 import com.massivecraft.factions.util.VisualizeUtil;
 import com.massivecraft.mcore.ps.PS;
 import com.massivecraft.mcore.util.MUtil;
+import com.massivecraft.mcore.util.PlayerUtil;
 import com.massivecraft.mcore.util.Txt;
 
 public class FactionsListenerMain implements Listener
@@ -187,6 +191,10 @@ public class FactionsListenerMain implements Listener
 		// If a player dies ...
 		Player player = event.getEntity();
 		
+		// ... and this is the first death event this tick ...
+		// (yeah other plugins can case death event to fire twice the same tick)
+		if (PlayerUtil.isDuplicateDeathEvent(event)) return;
+		
 		// Check Disabled
 		if (UConf.isDisabled(player)) return;
 		
@@ -201,7 +209,7 @@ public class FactionsListenerMain implements Listener
 			return;
 		}
 		
-		if (MConf.get().worldsNoPowerLoss.contains(player.getWorld().getName()))
+		if (MConf.get().getWorldsNoPowerLoss().contains(player.getWorld().getName()))
 		{
 			uplayer.msg("<i>You didn't lose any power due to the world you died in.");
 			return;
@@ -252,7 +260,10 @@ public class FactionsListenerMain implements Listener
 		// If a harmful potion is splashing ...
 		if (!MUtil.isHarmfulPotion(event.getPotion())) return;
 		
-		Entity thrower = event.getPotion().getShooter();
+		ProjectileSource projectileSource = event.getPotion().getShooter();
+		if (! (projectileSource instanceof Entity)) return;
+		
+		Entity thrower = (Entity)projectileSource;
 
 		// ... scan through affected entities to make sure they're all valid targets.
 		for (LivingEntity affectedEntity : event.getAffectedEntities())
@@ -265,8 +276,18 @@ public class FactionsListenerMain implements Listener
 		}
 	}
 
+	// Utility method used in "canCombatDamageHappen" below.
+	public static boolean falseUnlessDisallowedPvpEventCancelled(Player attacker, Player defender, EntityDamageByEntityEvent event)
+	{
+		FactionsEventPvpDisallowed dpe = new FactionsEventPvpDisallowed(attacker, defender, event);
+		dpe.run();
+		return dpe.isCancelled();
+	}
+	
 	public boolean canCombatDamageHappen(EntityDamageByEntityEvent event, boolean notify)
-	{	
+	{
+		boolean ret = true;
+		
 		// If the defender is a player ...
 		Entity edefender = event.getEntity();
 		if (!(edefender instanceof Player)) return true;
@@ -277,12 +298,11 @@ public class FactionsListenerMain implements Listener
 		if (UConf.isDisabled(defender)) return true;
 		
 		// ... and the attacker is someone else ...
-		Entity eattacker = event.getDamager();
-		if (eattacker instanceof Projectile)
-		{
-			eattacker = ((Projectile)eattacker).getShooter();
-		}
-		if (eattacker.equals(edefender)) return true;
+		Entity eattacker = MUtil.getLiableDamager(event);
+		
+		// (we check null here since there may not be an attacker)
+		// (lack of attacker situations can be caused by other bukkit plugins)
+		if (eattacker != null && eattacker.equals(edefender)) return true;
 		
 		// ... gather defender PS and faction information ...
 		PS defenderPs = PS.valueOf(defender);
@@ -291,14 +311,21 @@ public class FactionsListenerMain implements Listener
 		// ... PVP flag may cause a damage block ...
 		if (defenderPsFaction.getFlag(FFlag.PVP) == false)
 		{
+			if (eattacker == null)
+			{
+				// No attacker?
+				// Let's behave as if it were a player
+				return falseUnlessDisallowedPvpEventCancelled(null, defender, event);
+			}
 			if (eattacker instanceof Player)
 			{
-				if (notify)
+				ret = falseUnlessDisallowedPvpEventCancelled((Player)eattacker, defender, event);
+				if (!ret && notify)
 				{
 					UPlayer attacker = UPlayer.get(eattacker);
 					attacker.msg("<i>PVP is disabled in %s.", defenderPsFaction.describeTo(attacker));
 				}
-				return false;
+				return ret;
 			}
 			return defenderPsFaction.getFlag(FFlag.MONSTERS);
 		}
@@ -320,12 +347,13 @@ public class FactionsListenerMain implements Listener
 		// NOTE: This check is probably not that important but we could keep it anyways.
 		if (attackerPsFaction.getFlag(FFlag.PVP) == false)
 		{
-			if (notify) uattacker.msg("<i>PVP is disabled in %s.", attackerPsFaction.describeTo(uattacker));
-			return false;
+			ret = falseUnlessDisallowedPvpEventCancelled(attacker, defender, event);
+			if (!ret && notify) uattacker.msg("<i>PVP is disabled in %s.", attackerPsFaction.describeTo(uattacker));
+			return ret;
 		}
 
 		// ... are PVP rules completely ignored in this world? ...
-		if (MConf.get().worldsIgnorePvP.contains(defenderPs.getWorld())) return true;
+		if (MConf.get().getWorldsIgnlorePvP().contains(defenderPs.getWorld())) return true;
 
 		Faction defendFaction = udefender.getFaction();
 		Faction attackFaction = uattacker.getFaction();
@@ -333,8 +361,9 @@ public class FactionsListenerMain implements Listener
 
 		if (attackFaction.isNone() && uconf.disablePVPForFactionlessPlayers)
 		{
-			if (notify) uattacker.msg("<i>You can't hurt other players until you join a faction.");
-			return false;
+			ret = falseUnlessDisallowedPvpEventCancelled(attacker, defender, event);
+			if (!ret && notify) uattacker.msg("<i>You can't hurt other players until you join a faction.");
+			return ret;
 		}
 		else if (defendFaction.isNone())
 		{
@@ -345,8 +374,9 @@ public class FactionsListenerMain implements Listener
 			}
 			else if (uconf.disablePVPForFactionlessPlayers)
 			{
-				if (notify) uattacker.msg("<i>You can't hurt players who are not currently in a faction.");
-				return false;
+				ret = falseUnlessDisallowedPvpEventCancelled(attacker, defender, event);
+				if (!ret && notify) uattacker.msg("<i>You can't hurt players who are not currently in a faction.");
+				return ret;
 			}
 		}
 
@@ -355,8 +385,9 @@ public class FactionsListenerMain implements Listener
 		// Check the relation
 		if (udefender.hasFaction() && relation.isFriend() && defenderPsFaction.getFlag(FFlag.FRIENDLYFIRE) == false)
 		{
-			if (notify) uattacker.msg("<i>You can't hurt %s<i>.", relation.getDescPlayerMany());
-			return false;
+			ret = falseUnlessDisallowedPvpEventCancelled(attacker, defender, event);
+			if (!ret && notify) uattacker.msg("<i>You can't hurt %s<i>.", relation.getDescPlayerMany());
+			return ret;
 		}
 
 		// You can not hurt neutrals in their own territory.
@@ -364,19 +395,20 @@ public class FactionsListenerMain implements Listener
 		
 		if (udefender.hasFaction() && ownTerritory && relation == Rel.NEUTRAL)
 		{
-			if (notify)
+			ret = falseUnlessDisallowedPvpEventCancelled(attacker, defender, event);
+			if (!ret && notify)
 			{
 				uattacker.msg("<i>You can't hurt %s<i> in their own territory unless you declare them as an enemy.", udefender.describeTo(uattacker));
 				udefender.msg("%s<i> tried to hurt you.", uattacker.describeTo(udefender, true));
 			}
-			return false;
+			return ret;
 		}
 
 		// Damage will be dealt. However check if the damage should be reduced.
 		double damage = event.getDamage();
 		if (damage > 0.0 && udefender.hasFaction() && ownTerritory && uconf.territoryShieldFactor > 0)
 		{
-			int newDamage = (int)Math.ceil(damage * (1D - uconf.territoryShieldFactor));
+			double newDamage = damage * (1D - uconf.territoryShieldFactor);
 			event.setDamage(newDamage);
 
 			// Send message
@@ -468,7 +500,7 @@ public class FactionsListenerMain implements Listener
 		// ... if there is a faction at the players location ...
 		PS ps = PS.valueOf(player).getChunk(true);
 		Faction factionAtPs = BoardColls.get().getFactionAt(ps);
-		if (factionAtPs.isNone()) return;
+		if (factionAtPs.isNone()) return; // TODO: An NPE can arise here? Why?
 		
 		// ... the command may be denied in the territory of this relation type ...
 		Rel rel = factionAtPs.getRelationTo(uplayer);
@@ -477,7 +509,7 @@ public class FactionsListenerMain implements Listener
 		if (deniedCommands == null) return;
 		if (!containsCommand(command, deniedCommands)) return;
 		
-		uplayer.msg("<b>You can't use \"<h>/%s<b>\" in %s territory.", Txt.getNicedEnum(rel), command);
+		uplayer.msg("<b>You can't use \"<h>/%s<b>\" in %s territory.", command, Txt.getNicedEnum(rel));
 		event.setCancelled(true);
 	}
 
@@ -507,7 +539,7 @@ public class FactionsListenerMain implements Listener
 	public void blockMonsters(CreatureSpawnEvent event)
 	{
 		// If a monster is spawning ...
-		if ( ! Const.ENTITY_TYPES_MONSTERS.contains(event.getEntityType())) return;
+		if ( ! MConf.get().entityTypesMonsters.contains(event.getEntityType())) return;
 		
 		// Check Disabled
 		if (UConf.isDisabled(event.getLocation())) return;
@@ -525,7 +557,7 @@ public class FactionsListenerMain implements Listener
 	public void blockMonsters(EntityTargetEvent event)
 	{
 		// If a monster ...
-		if ( ! Const.ENTITY_TYPES_MONSTERS.contains(event.getEntityType())) return;
+		if ( ! MConf.get().entityTypesMonsters.contains(event.getEntityType())) return;
 		
 		// ... is targeting something ...
 		Entity target = event.getTarget();
@@ -566,7 +598,7 @@ public class FactionsListenerMain implements Listener
 	
 		// ... and the faction there has explosions disabled ...
 		Faction faction = BoardColls.get().getFactionAt(PS.valueOf(entity));
-		if (faction.getFlag(FFlag.EXPLOSIONS)) return;
+		if (faction.isExplosionsAllowed()) return;
 		
 		// ... then cancel.
 		event.setCancelled(true);
@@ -575,6 +607,14 @@ public class FactionsListenerMain implements Listener
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
 	public void blockExplosion(EntityExplodeEvent event)
 	{
+		// Prepare some variables:
+		// Current faction
+		Faction faction = null;
+		// Current allowed
+		Boolean allowed = true;
+		// Caching to speed things up.
+		Map<Faction, Boolean> faction2allowed = new HashMap<Faction, Boolean>();
+				
 		// If an explosion occurs at a location ...
 		Location location = event.getLocation();
 		
@@ -582,19 +622,29 @@ public class FactionsListenerMain implements Listener
 		if (UConf.isDisabled(location)) return;
 		
 		// Check the entity. Are explosions disabled there? 
-		if (BoardColls.get().getFactionAt(PS.valueOf(location)).getFlag(FFlag.EXPLOSIONS) == false)
+		faction = BoardColls.get().getFactionAt(PS.valueOf(location));
+		allowed = faction.isExplosionsAllowed();
+		if (allowed == false)
 		{
 			event.setCancelled(true);
 			return;
 		}
+		faction2allowed.put(faction, allowed);
 		
 		// Individually check the flag state for each block
 		Iterator<Block> iter = event.blockList().iterator();
 		while (iter.hasNext())
 		{
 			Block block = iter.next();
-			Faction faction = BoardColls.get().getFactionAt(PS.valueOf(block));
-			if (faction.getFlag(FFlag.EXPLOSIONS) == false) iter.remove();
+			faction = BoardColls.get().getFactionAt(PS.valueOf(block));
+			allowed = faction2allowed.get(faction);
+			if (allowed == null)
+			{
+				allowed = faction.isExplosionsAllowed();
+				faction2allowed.put(faction, allowed);
+			}
+			
+			if (allowed == false) iter.remove();
 		}
 	}
 	
@@ -611,7 +661,8 @@ public class FactionsListenerMain implements Listener
 		// ... and the faction there has explosions disabled ...
 		PS ps = PS.valueOf(event.getBlock());
 		Faction faction = BoardColls.get().getFactionAt(ps);
-		if (faction.getFlag(FFlag.EXPLOSIONS)) return;
+		
+		if (faction.isExplosionsAllowed()) return;
 		
 		// ... stop the block alteration.
 		event.setCancelled(true);
@@ -674,7 +725,7 @@ public class FactionsListenerMain implements Listener
 	public void blockFireSpread(BlockSpreadEvent event)
 	{
 		// If fire is spreading ...
-		if (event.getNewState().getTypeId() != 51) return;
+		if (event.getNewState().getType() != Material.FIRE) return;
 		
 		// ... consider blocking it.
 		blockFireSpread(event.getBlock(), event);
@@ -736,6 +787,26 @@ public class FactionsListenerMain implements Listener
 		{
 			event.setCancelled(true);
 		}
+	}
+	
+	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+	public void itemFrameDamage(EntityDamageByEntityEvent event)
+	{
+		// If the damagee is an ItemFrame ...
+		Entity edamagee = event.getEntity();
+		if (!(edamagee instanceof ItemFrame)) return;
+		ItemFrame itemFrame = (ItemFrame)edamagee;
+		
+		// ... and the liable damager is a player ...
+		Entity edamager = MUtil.getLiableDamager(event);
+		if (!(edamager instanceof Player)) return;
+		Player player = (Player)edamager;
+		
+		// ... and the player can't build there ...
+		if (canPlayerBuildAt(player, PS.valueOf(itemFrame), true)) return;
+		
+		// ... then cancel the event.
+		event.setCancelled(true);
 	}
 	
 	@EventHandler(priority = EventPriority.NORMAL)
@@ -852,7 +923,7 @@ public class FactionsListenerMain implements Listener
 	// TODO: Possibly incorporate pain build... 
 	public static boolean playerCanUseItemHere(Player player, PS ps, Material material, boolean justCheck)
 	{
-		if (!Const.MATERIALS_EDIT_TOOLS.contains(material)) return true;
+		if (!MConf.get().materialsEditTools.contains(material)) return true;
 		
 		String name = player.getName();
 		if (MConf.get().playersWhoBypassAllProtection.contains(name)) return true;
@@ -874,9 +945,9 @@ public class FactionsListenerMain implements Listener
 		PS ps = PS.valueOf(block);
 		Material material = block.getType();
 		
-		if (Const.MATERIALS_EDIT_ON_INTERACT.contains(material) && ! FPerm.BUILD.has(me, ps, ! justCheck)) return false;
-		if (Const.MATERIALS_CONTAINER.contains(material) && ! FPerm.CONTAINER.has(me, ps, ! justCheck)) return false;
-		if (Const.MATERIALS_DOOR.contains(material) && ! FPerm.DOOR.has(me, ps, ! justCheck)) return false;
+		if (MConf.get().materialsEditOnInteract.contains(material) && ! FPerm.BUILD.has(me, ps, ! justCheck)) return false;
+		if (MConf.get().materialsContainer.contains(material) && ! FPerm.CONTAINER.has(me, ps, ! justCheck)) return false;
+		if (MConf.get().materialsDoor.contains(material) && ! FPerm.DOOR.has(me, ps, ! justCheck)) return false;
 		if (material == Material.STONE_BUTTON && ! FPerm.BUTTON.has(me, ps, ! justCheck)) return false;
 		if (material == Material.LEVER && ! FPerm.LEVER.has(me, ps, ! justCheck)) return false;
 		return true;

@@ -26,16 +26,27 @@ import com.massivecraft.mcore.util.Txt;
 
 public class CmdFactionsFaction extends FCommand
 {
+	// -------------------------------------------- //
+	// CONSTRUCT
+	// -------------------------------------------- //
+	
 	public CmdFactionsFaction()
 	{
+		// Aliases
 		this.addAliases("f", "faction");
-		
+
+		// Args
 		this.addOptionalArg("faction", "you");
-		
+
+		// Requirements
 		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.FACTION.node));
 	}
 
+	// -------------------------------------------- //
+	// OVERRIDE
+	// -------------------------------------------- //
+	
 	@Override
 	public void perform()
 	{
@@ -93,13 +104,13 @@ public class CmdFactionsFaction extends FCommand
 						money *= -1;
 					}
 					
-					msg("<a>Total land %s %s: <i>%s", type.toString().toLowerCase(), word, Money.format(faction, money));
+					msg("<a>Total land %s %s: <i>%s", type.toString().toLowerCase(), word, Money.format(money));
 				}
 				
 				// Show bank contents
 				if (UConf.get(faction).bankEnabled)
 				{
-					msg("<a>Bank contains: <i>"+Money.format(faction, Money.get(faction)));
+					msg("<a>Bank contains: <i>"+Money.format(Money.get(faction)));
 				}
 			}
 			

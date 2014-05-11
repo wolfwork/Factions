@@ -8,7 +8,6 @@ import com.massivecraft.mcore.store.Coll;
 import com.massivecraft.mcore.store.MStore;
 import com.massivecraft.mcore.util.Txt;
 
-import com.massivecraft.factions.ConfServer;
 import com.massivecraft.factions.FFlag;
 import com.massivecraft.factions.FPerm;
 import com.massivecraft.factions.Factions;
@@ -24,7 +23,7 @@ public class FactionColl extends Coll<Faction>
 	
 	public FactionColl(String name)
 	{
-		super(name, Faction.class, MStore.getDb(ConfServer.dburi), Factions.get());
+		super(name, Faction.class, MStore.getDb(), Factions.get());
 	}
 	
 	// -------------------------------------------- //
@@ -102,6 +101,7 @@ public class FactionColl extends Coll<Faction>
 		faction.setFlag(FFlag.FRIENDLYFIRE, false);
 		faction.setFlag(FFlag.MONSTERS, true);
 		faction.setFlag(FFlag.EXPLOSIONS, true);
+		faction.setFlag(FFlag.OFFLINE_EXPLOSIONS, true);
 		faction.setFlag(FFlag.FIRESPREAD, true);
 		faction.setFlag(FFlag.ENDERGRIEF, true);
 		
@@ -134,6 +134,7 @@ public class FactionColl extends Coll<Faction>
 		faction.setFlag(FFlag.FRIENDLYFIRE, false);
 		faction.setFlag(FFlag.MONSTERS, false);
 		faction.setFlag(FFlag.EXPLOSIONS, false);
+		faction.setFlag(FFlag.OFFLINE_EXPLOSIONS, false);
 		faction.setFlag(FFlag.FIRESPREAD, false);
 		faction.setFlag(FFlag.ENDERGRIEF, false);
 		
@@ -166,6 +167,7 @@ public class FactionColl extends Coll<Faction>
 		faction.setFlag(FFlag.FRIENDLYFIRE, true);
 		faction.setFlag(FFlag.MONSTERS, true);
 		faction.setFlag(FFlag.EXPLOSIONS, true);
+		faction.setFlag(FFlag.OFFLINE_EXPLOSIONS, true);
 		faction.setFlag(FFlag.FIRESPREAD, true);
 		faction.setFlag(FFlag.ENDERGRIEF, true);
 		

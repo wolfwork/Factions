@@ -10,23 +10,35 @@ import com.massivecraft.factions.cmd.req.ReqRoleIsAtLeast;
 import com.massivecraft.factions.entity.Faction;
 import com.massivecraft.factions.entity.FactionColl;
 import com.massivecraft.factions.entity.FactionColls;
+import com.massivecraft.factions.entity.UConf;
 import com.massivecraft.factions.event.FactionsEventNameChange;
 import com.massivecraft.factions.util.MiscUtil;
 import com.massivecraft.mcore.cmd.req.ReqHasPerm;
 
 public class CmdFactionsName extends FCommand
 {
+	// -------------------------------------------- //
+	// CONSTRUCT
+	// -------------------------------------------- //
+	
 	public CmdFactionsName()
 	{
+		// Aliases
 		this.addAliases("name");
-		
+
+		// Args
 		this.addRequiredArg("new name");
-		
+
+		// Requirements
 		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.NAME.node));
 		this.addRequirements(ReqHasFaction.get());
 		this.addRequirements(ReqRoleIsAtLeast.get(Rel.OFFICER));
 	}
+
+	// -------------------------------------------- //
+	// OVERRIDE
+	// -------------------------------------------- //
 	
 	@Override
 	public void perform()
@@ -63,13 +75,15 @@ public class CmdFactionsName extends FCommand
 
 		// Inform
 		usenderFaction.msg("%s<i> changed your faction name to %s", usender.describeTo(usenderFaction, true), usenderFaction.getName(usenderFaction));
+		
+		if (!UConf.get(usender).broadcastNameChange) return;
 		for (Faction faction : FactionColls.get().get(usenderFaction).getAll())
 		{
 			if (faction == usenderFaction)
 			{
 				continue;
 			}
-			faction.msg("<i>The faction %s<i> changed their name to %s.", usender.getColorTo(faction)+oldName, usenderFaction.getName(faction));
+			faction.msg("<i>The player %s<i> changed their faction name from %s<i> to %s<i>.", usender.describeTo(faction, true), usender.getColorTo(faction)+oldName, usenderFaction.getName(faction));
 		}
 	}
 	
