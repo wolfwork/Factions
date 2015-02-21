@@ -2,14 +2,13 @@ package com.massivecraft.factions.adapter;
 
 import java.lang.reflect.Type;
 
-import com.massivecraft.mcore.xlib.gson.JsonDeserializationContext;
-import com.massivecraft.mcore.xlib.gson.JsonDeserializer;
-import com.massivecraft.mcore.xlib.gson.JsonElement;
-import com.massivecraft.mcore.xlib.gson.JsonObject;
-import com.massivecraft.mcore.xlib.gson.JsonParseException;
-
 import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.entity.Faction;
+import com.massivecraft.massivecore.xlib.gson.JsonDeserializationContext;
+import com.massivecraft.massivecore.xlib.gson.JsonDeserializer;
+import com.massivecraft.massivecore.xlib.gson.JsonElement;
+import com.massivecraft.massivecore.xlib.gson.JsonObject;
+import com.massivecraft.massivecore.xlib.gson.JsonParseException;
 
 public class FactionPreprocessAdapter implements JsonDeserializer<Faction>
 {
@@ -44,7 +43,11 @@ public class FactionPreprocessAdapter implements JsonDeserializer<Faction>
 		rename(jsonObject, "permOverrides", "perms");
 	}
 	
-	public void rename(final JsonObject jsonObject, final String from, final String to)
+	// -------------------------------------------- //
+	// UTIL
+	// -------------------------------------------- //
+	
+	public static void rename(final JsonObject jsonObject, final String from, final String to)
 	{
 		JsonElement element = jsonObject.remove(from);
 		if (element != null) jsonObject.add(to, element);

@@ -2,14 +2,10 @@ package com.massivecraft.factions.entity;
 
 import java.util.*;
 
-import org.bukkit.ChatColor;
-
-import com.massivecraft.mcore.store.Coll;
-import com.massivecraft.mcore.store.MStore;
-import com.massivecraft.mcore.util.Txt;
-
-import com.massivecraft.factions.FFlag;
-import com.massivecraft.factions.FPerm;
+import com.massivecraft.massivecore.store.Coll;
+import com.massivecraft.massivecore.store.MStore;
+import com.massivecraft.massivecore.util.Txt;
+import com.massivecraft.factions.Const;
 import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.Rel;
 import com.massivecraft.factions.integration.Econ;
@@ -18,12 +14,24 @@ import com.massivecraft.factions.util.MiscUtil;
 public class FactionColl extends Coll<Faction>
 {
 	// -------------------------------------------- //
-	// CONSTRUCT
+	// INSTANCE & CONSTRUCT
 	// -------------------------------------------- //
 	
-	public FactionColl(String name)
+	private static FactionColl i = new FactionColl();
+	public static FactionColl get() { return i; }
+	private FactionColl()
 	{
-		super(name, Faction.class, MStore.getDb(), Factions.get());
+		super(Const.COLLECTION_FACTION, Faction.class, MStore.getDb(), Factions.get());
+	}
+
+	// -------------------------------------------- //
+	// STACK TRACEABILITY
+	// -------------------------------------------- //
+	
+	@Override
+	public void onTick()
+	{
+		super.onTick();
 	}
 	
 	// -------------------------------------------- //
@@ -48,11 +56,11 @@ public class FactionColl extends Coll<Faction>
 		// Example Reason: When creating the special factions for the first time "createSpecialFactions" a clean would be triggered otherwise.
 		if (ret == null && Factions.get().isDatabaseInitialized())
 		{
-			String message = Txt.parse("<b>Non existing factionId <h>%s <b>requested. <i>Cleaning all boards and uplayers.", this.fixId(oid));
+			String message = Txt.parse("<b>Non existing factionId <h>%s <b>requested. <i>Cleaning all boards and mplayers.", this.fixId(oid));
 			Factions.get().log(message);
 			
-			BoardColls.get().clean();
-			UPlayerColls.get().clean();
+			BoardColl.get().clean();
+			MPlayerColl.get().clean();
 		}
 		
 		return ret;
@@ -62,11 +70,11 @@ public class FactionColl extends Coll<Faction>
 	// INDEX
 	// -------------------------------------------- //
 	
-	public void reindexUPlayers()
+	public void reindexMPlayers()
 	{
 		for (Faction faction : this.getAll())
 		{
-			faction.reindexUPlayers();
+			faction.reindexMPlayers();
 		}
 	}
 	
@@ -83,99 +91,100 @@ public class FactionColl extends Coll<Faction>
 	
 	public Faction getNone()
 	{
-		String id = UConf.get(this).factionIdNone;
+		String id = Factions.ID_NONE;
 		Faction faction = this.get(id);
 		if (faction != null) return faction;
 		
 		faction = this.create(id);
 		
-		faction.setName(ChatColor.DARK_GREEN+"Wilderness");
-		faction.setDescription(null);
-		faction.setOpen(false);
+		faction.setName(Factions.NAME_NONE_DEFAULT);
+		faction.setDescription("It's dangerous to go alone.");
 		
-		faction.setFlag(FFlag.PERMANENT, true);
-		faction.setFlag(FFlag.PEACEFUL, false);
-		faction.setFlag(FFlag.INFPOWER, true);
-		faction.setFlag(FFlag.POWERLOSS, true);
-		faction.setFlag(FFlag.PVP, true);
-		faction.setFlag(FFlag.FRIENDLYFIRE, false);
-		faction.setFlag(FFlag.MONSTERS, true);
-		faction.setFlag(FFlag.EXPLOSIONS, true);
-		faction.setFlag(FFlag.OFFLINE_EXPLOSIONS, true);
-		faction.setFlag(FFlag.FIRESPREAD, true);
-		faction.setFlag(FFlag.ENDERGRIEF, true);
+		faction.setFlag(MFlag.getFlagOpen(), false);
+		faction.setFlag(MFlag.getFlagPermanent(), true);
+		faction.setFlag(MFlag.getFlagPeaceful(), false);
+		faction.setFlag(MFlag.getFlagInfpower(), true);
+		faction.setFlag(MFlag.getFlagPowerloss(), true);
+		faction.setFlag(MFlag.getFlagPvp(), true);
+		faction.setFlag(MFlag.getFlagFriendlyire(), false);
+		faction.setFlag(MFlag.getFlagMonsters(), true);
+		faction.setFlag(MFlag.getFlagExplosions(), true);
+		faction.setFlag(MFlag.getFlagOfflineexplosions(), true);
+		faction.setFlag(MFlag.getFlagFirespread(), true);
+		faction.setFlag(MFlag.getFlagEndergrief(), true);
 		
-		faction.setPermittedRelations(FPerm.BUILD, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.DOOR, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.CONTAINER, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.BUTTON, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.LEVER, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermBuild(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermDoor(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermContainer(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermButton(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermLever(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermDeposit(), Rel.LEADER, Rel.OFFICER); // Wilderness deposit should be limited as an anti spam meassure.
 		
 		return faction;
 	}
 	
 	public Faction getSafezone()
 	{
-		String id = UConf.get(this).factionIdSafezone;
+		String id = Factions.ID_SAFEZONE;
 		Faction faction = this.get(id);
 		if (faction != null) return faction;
 		
 		faction = this.create(id);
 		
-		faction.setName("SafeZone");
+		faction.setName(Factions.NAME_SAFEZONE_DEFAULT);
 		faction.setDescription("Free from PVP and monsters");
-		faction.setOpen(false);
 		
-		faction.setFlag(FFlag.PERMANENT, true);
-		faction.setFlag(FFlag.PEACEFUL, true);
-		faction.setFlag(FFlag.INFPOWER, true);
-		faction.setFlag(FFlag.POWERLOSS, false);
-		faction.setFlag(FFlag.PVP, false);
-		faction.setFlag(FFlag.FRIENDLYFIRE, false);
-		faction.setFlag(FFlag.MONSTERS, false);
-		faction.setFlag(FFlag.EXPLOSIONS, false);
-		faction.setFlag(FFlag.OFFLINE_EXPLOSIONS, false);
-		faction.setFlag(FFlag.FIRESPREAD, false);
-		faction.setFlag(FFlag.ENDERGRIEF, false);
+		faction.setFlag(MFlag.getFlagOpen(), false);
+		faction.setFlag(MFlag.getFlagPermanent(), true);
+		faction.setFlag(MFlag.getFlagPeaceful(), true);
+		faction.setFlag(MFlag.getFlagInfpower(), true);
+		faction.setFlag(MFlag.getFlagPowerloss(), false);
+		faction.setFlag(MFlag.getFlagPvp(), false);
+		faction.setFlag(MFlag.getFlagFriendlyire(), false);
+		faction.setFlag(MFlag.getFlagMonsters(), false);
+		faction.setFlag(MFlag.getFlagExplosions(), false);
+		faction.setFlag(MFlag.getFlagOfflineexplosions(), false);
+		faction.setFlag(MFlag.getFlagFirespread(), false);
+		faction.setFlag(MFlag.getFlagEndergrief(), false);
 		
-		faction.setPermittedRelations(FPerm.DOOR, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.CONTAINER, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.BUTTON, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.LEVER, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.TERRITORY, Rel.LEADER, Rel.OFFICER, Rel.MEMBER);
+		faction.setPermittedRelations(MPerm.getPermDoor(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermContainer(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermButton(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermLever(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermTerritory(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER);
 		
 		return faction;
 	}
 	
 	public Faction getWarzone()
 	{
-		String id = UConf.get(this).factionIdWarzone;
+		String id = Factions.ID_WARZONE;
 		Faction faction = this.get(id);
 		if (faction != null) return faction;
 		
 		faction = this.create(id);
 		
-		faction.setName("WarZone");
+		faction.setName(Factions.NAME_WARZONE_DEFAULT);
 		faction.setDescription("Not the safest place to be");
-		faction.setOpen(false);
 		
-		faction.setFlag(FFlag.PERMANENT, true);
-		faction.setFlag(FFlag.PEACEFUL, true);
-		faction.setFlag(FFlag.INFPOWER, true);
-		faction.setFlag(FFlag.POWERLOSS, true);
-		faction.setFlag(FFlag.PVP, true);
-		faction.setFlag(FFlag.FRIENDLYFIRE, true);
-		faction.setFlag(FFlag.MONSTERS, true);
-		faction.setFlag(FFlag.EXPLOSIONS, true);
-		faction.setFlag(FFlag.OFFLINE_EXPLOSIONS, true);
-		faction.setFlag(FFlag.FIRESPREAD, true);
-		faction.setFlag(FFlag.ENDERGRIEF, true);
+		faction.setFlag(MFlag.getFlagOpen(), false);
+		faction.setFlag(MFlag.getFlagPermanent(), true);
+		faction.setFlag(MFlag.getFlagPeaceful(), true);
+		faction.setFlag(MFlag.getFlagInfpower(), true);
+		faction.setFlag(MFlag.getFlagPowerloss(), true);
+		faction.setFlag(MFlag.getFlagPvp(), true);
+		faction.setFlag(MFlag.getFlagFriendlyire(), true);
+		faction.setFlag(MFlag.getFlagMonsters(), true);
+		faction.setFlag(MFlag.getFlagExplosions(), true);
+		faction.setFlag(MFlag.getFlagOfflineexplosions(), true);
+		faction.setFlag(MFlag.getFlagFirespread(), true);
+		faction.setFlag(MFlag.getFlagEndergrief(), true);
 		
-		faction.setPermittedRelations(FPerm.DOOR, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.CONTAINER, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.BUTTON, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.LEVER, Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
-		faction.setPermittedRelations(FPerm.TERRITORY, Rel.LEADER, Rel.OFFICER, Rel.MEMBER);
+		faction.setPermittedRelations(MPerm.getPermDoor(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermContainer(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermButton(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermLever(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER, Rel.RECRUIT, Rel.ALLY, Rel.TRUCE, Rel.NEUTRAL, Rel.ENEMY);
+		faction.setPermittedRelations(MPerm.getPermTerritory(), Rel.LEADER, Rel.OFFICER, Rel.MEMBER);
 		
 		return faction;
 	}
@@ -186,21 +195,21 @@ public class FactionColl extends Coll<Faction>
 	
 	public void econLandRewardRoutine()
 	{
-		if (!Econ.isEnabled(this.getUniverse())) return;
+		if (!Econ.isEnabled()) return;
 		
-		double econLandReward = UConf.get(this).econLandReward;
+		double econLandReward = MConf.get().econLandReward;
 		if (econLandReward == 0.0) return;
 		
 		Factions.get().log("Running econLandRewardRoutine...");
 		for (Faction faction : this.getAll())
 		{
 			int landCount = faction.getLandCount();
-			if (!faction.getFlag(FFlag.PEACEFUL) && landCount > 0)
+			if (!faction.getFlag(MFlag.getFlagPeaceful()) && landCount > 0)
 			{
-				List<UPlayer> players = faction.getUPlayers();
+				List<MPlayer> players = faction.getMPlayers();
 				int playerCount = players.size();
 				double reward = econLandReward * landCount / playerCount;
-				for (UPlayer player : players)
+				for (MPlayer player : players)
 				{
 					Econ.modifyMoney(player, reward, "own " + landCount + " faction land divided among " + playerCount + " members");
 				}
@@ -216,14 +225,14 @@ public class FactionColl extends Coll<Faction>
 	{
 		ArrayList<String> errors = new ArrayList<String>();
 		
-		if (MiscUtil.getComparisonString(str).length() < UConf.get(this).factionNameLengthMin)
+		if (MiscUtil.getComparisonString(str).length() < MConf.get().factionNameLengthMin)
 		{
-			errors.add(Txt.parse("<i>The faction name can't be shorter than <h>%s<i> chars.", UConf.get(this).factionNameLengthMin));
+			errors.add(Txt.parse("<i>The faction name can't be shorter than <h>%s<i> chars.", MConf.get().factionNameLengthMin));
 		}
 		
-		if (str.length() > UConf.get(this).factionNameLengthMax)
+		if (str.length() > MConf.get().factionNameLengthMax)
 		{
-			errors.add(Txt.parse("<i>The faction name can't be longer than <h>%s<i> chars.", UConf.get(this).factionNameLengthMax));
+			errors.add(Txt.parse("<i>The faction name can't be longer than <h>%s<i> chars.", MConf.get().factionNameLengthMax));
 		}
 		
 		for (char c : str.toCharArray())
@@ -237,9 +246,9 @@ public class FactionColl extends Coll<Faction>
 		return errors;
 	}
 	
-	public Faction getByName(String str)
+	public Faction getByName(String name)
 	{
-		String compStr = MiscUtil.getComparisonString(str);
+		String compStr = MiscUtil.getComparisonString(name);
 		for (Faction faction : this.getAll())
 		{
 			if (faction.getComparisonName().equals(compStr))
@@ -250,24 +259,59 @@ public class FactionColl extends Coll<Faction>
 		return null;
 	}
 	
-	public Faction getBestNameMatch(String searchFor)
-	{
-		Map<String, Faction> name2faction = new HashMap<String, Faction>();
-		
-		// TODO: Slow index building
-		for (Faction faction : this.getAll())
-		{
-			name2faction.put(ChatColor.stripColor(faction.getName()), faction);
-		}
-		
-		String tag = Txt.getBestCIStart(name2faction.keySet(), searchFor);
-		if (tag == null) return null;
-		return name2faction.get(tag);
-	}
-	
 	public boolean isNameTaken(String str)
 	{
 		return this.getByName(str) != null;
 	}
+	
+	// -------------------------------------------- //
+	// OLD MIGRATION COMMENT
+	// -------------------------------------------- //
+	
+	/*
+@Override
+	public void init()
+	{
+		super.init();
+		
+		this.migrate();
+	}
+	
+	// This method is for the 1.8.X --> 2.0.0 migration
+	public void migrate()
+	{
+		// Create file objects
+		File oldFile = new File(Factions.get().getDataFolder(), "factions.json");
+		File newFile = new File(Factions.get().getDataFolder(), "factions.json.migrated");
+		
+		// Already migrated?
+		if ( ! oldFile.exists()) return;
+		
+		// Faction ids /delete
+		// For simplicity we just drop the old special factions.
+		// They will be replaced with new autogenerated ones per universe.
+		Set<String> factionIdsToDelete = MUtil.set("0", "-1", "-2");
+		
+		// Read the file content through GSON. 
+		Type type = new TypeToken<Map<String, Faction>>(){}.getType();
+		Map<String, Faction> id2faction = Factions.get().gson.fromJson(DiscUtil.readCatch(oldFile), type);
+		
+		// The Coll
+		FactionColl coll = this.getForUniverse(MassiveCore.DEFAULT);
+		
+		// Set the data
+		for (Entry<String, Faction> entry : id2faction.entrySet())
+		{
+			String factionId = entry.getKey();
+			if (factionIdsToDelete.contains(factionId)) continue;
+			Faction faction = entry.getValue();
+			coll.attach(faction, factionId);
+		}
+		
+		// Mark as migrated
+		oldFile.renameTo(newFile);
+	}
+
+	 */
 
 }

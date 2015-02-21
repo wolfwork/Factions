@@ -2,10 +2,11 @@ package com.massivecraft.factions.cmd.req;
 
 import org.bukkit.command.CommandSender;
 
-import com.massivecraft.factions.entity.UConf;
-import com.massivecraft.mcore.cmd.MCommand;
-import com.massivecraft.mcore.cmd.req.ReqAbstract;
-import com.massivecraft.mcore.util.Txt;
+import com.massivecraft.factions.entity.MConf;
+import com.massivecraft.factions.integration.Econ;
+import com.massivecraft.massivecore.cmd.MassiveCommand;
+import com.massivecraft.massivecore.cmd.req.ReqAbstract;
+import com.massivecraft.massivecore.util.Txt;
 
 public class ReqBankCommandsEnabled extends ReqAbstract
 {
@@ -23,20 +24,19 @@ public class ReqBankCommandsEnabled extends ReqAbstract
 	// -------------------------------------------- //
 	
 	@Override
-	public boolean apply(CommandSender sender, MCommand command)
+	public boolean apply(CommandSender sender, MassiveCommand command)
 	{
-		return UConf.get(sender).econEnabled && UConf.get(sender).bankEnabled;
+		return MConf.get().bankEnabled && Econ.isEnabled();
 	}
 	
 	@Override
-	public String createErrorMessage(CommandSender sender, MCommand command)
+	public String createErrorMessage(CommandSender sender, MassiveCommand command)
 	{
-		UConf uconf = UConf.get(sender);
-		if (!uconf.bankEnabled)
+		if ( ! MConf.get().bankEnabled)
 		{
-			return Txt.parse("<b>Faction banks are disabled in the <h>%s <b>universe.", uconf.getUniverse());
+			return Txt.parse("<b>Faction banks are disabled.");
 		}
-		return Txt.parse("<b>Faction economy features are disabled in the <h>%s <b>universe.", uconf.getUniverse());
+		return Txt.parse("<b>Faction economy features are disabled.");
 	}
 	
 }

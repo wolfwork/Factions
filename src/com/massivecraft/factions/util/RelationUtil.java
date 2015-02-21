@@ -2,13 +2,13 @@ package com.massivecraft.factions.util;
 
 import org.bukkit.ChatColor;
 
-import com.massivecraft.factions.FFlag;
 import com.massivecraft.factions.Rel;
 import com.massivecraft.factions.RelationParticipator;
-import com.massivecraft.factions.entity.UPlayer;
+import com.massivecraft.factions.entity.MFlag;
+import com.massivecraft.factions.entity.MPlayer;
 import com.massivecraft.factions.entity.Faction;
 import com.massivecraft.factions.entity.MConf;
-import com.massivecraft.mcore.util.Txt;
+import com.massivecraft.massivecore.util.Txt;
 
 public class RelationUtil
 {
@@ -29,7 +29,11 @@ public class RelationUtil
 
 		if (that instanceof Faction)
 		{
-			if (me instanceof UPlayer && myFaction == thatFaction)
+			if (thatFaction.isNone())
+			{
+				ret = thatFaction.getName();
+			}
+			else if (me instanceof MPlayer && myFaction == thatFaction)
 			{
 				ret = "your faction";
 			}
@@ -38,20 +42,20 @@ public class RelationUtil
 				ret = thatFaction.getName();
 			}
 		}
-		else if (that instanceof UPlayer)
+		else if (that instanceof MPlayer)
 		{
-			UPlayer uplayerthat = (UPlayer) that;
+			MPlayer mplayerthat = (MPlayer) that;
 			if (that == me)
 			{
 				ret = "you";
 			}
 			else if (thatFaction == myFaction)
 			{
-				ret = uplayerthat.getNameAndTitle(myFaction);
+				ret = mplayerthat.getNameAndTitle(myFaction);
 			}
 			else
 			{
-				ret = uplayerthat.getNameAndFactionName();
+				ret = mplayerthat.getNameAndFactionName();
 			}
 		}
 
@@ -98,13 +102,13 @@ public class RelationUtil
 			ret = Rel.MEMBER;
 			// Do officer and leader check
 			//P.p.log("getRelationOfThatToMe the factions are the same for "+that.getClass().getSimpleName()+" and observer "+me.getClass().getSimpleName());
-			if (that instanceof UPlayer)
+			if (that instanceof MPlayer)
 			{
-				ret = ((UPlayer)that).getRole();
+				ret = ((MPlayer)that).getRole();
 				//P.p.log("getRelationOfThatToMe it was a player and role is "+ret);
 			}
 		}
-		else if (!ignorePeaceful && (thatFaction.getFlag(FFlag.PEACEFUL) || myFaction.getFlag(FFlag.PEACEFUL)))
+		else if (!ignorePeaceful && (thatFaction.getFlag(MFlag.getFlagPeaceful()) || myFaction.getFlag(MFlag.getFlagPeaceful())))
 		{
 			ret = Rel.TRUCE;
 		}
@@ -119,9 +123,9 @@ public class RelationUtil
 			return (Faction) rp;
 		}
 
-		if (rp instanceof UPlayer)
+		if (rp instanceof MPlayer)
 		{
-			return ((UPlayer) rp).getFaction();
+			return ((MPlayer) rp).getFaction();
 		}
 
 		// ERROR
@@ -133,12 +137,12 @@ public class RelationUtil
 		Faction thatFaction = getFaction(that);
 		if (thatFaction != null && thatFaction != getFaction(me))
 		{
-			if (thatFaction.getFlag(FFlag.FRIENDLYFIRE) == true)
+			if (thatFaction.getFlag(MFlag.getFlagFriendlyire()) == true)
 			{
 				return MConf.get().colorFriendlyFire;
 			}
 			
-			if (thatFaction.getFlag(FFlag.PVP) == false)
+			if (thatFaction.getFlag(MFlag.getFlagPvp()) == false)
 			{
 				return MConf.get().colorNoPVP;
 			}

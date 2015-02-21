@@ -17,10 +17,12 @@ import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.RelationParticipator;
 import com.massivecraft.factions.TerritoryAccess;
 import com.massivecraft.factions.util.AsciiCompass;
-import com.massivecraft.mcore.ps.PS;
-import com.massivecraft.mcore.store.Entity;
-import com.massivecraft.mcore.util.Txt;
-import com.massivecraft.mcore.xlib.gson.reflect.TypeToken;
+import com.massivecraft.massivecore.collections.MassiveMap;
+import com.massivecraft.massivecore.collections.MassiveSet;
+import com.massivecraft.massivecore.ps.PS;
+import com.massivecraft.massivecore.store.Entity;
+import com.massivecraft.massivecore.util.Txt;
+import com.massivecraft.massivecore.xlib.gson.reflect.TypeToken;
 
 public class Board extends Entity<Board> implements BoardInterface
 {
@@ -32,7 +34,7 @@ public class Board extends Entity<Board> implements BoardInterface
 	
 	public static Board get(Object oid)
 	{
-		return BoardColls.get().get2(oid);
+		return BoardColl.get().get(oid);
 	}
 	
 	// -------------------------------------------- //
@@ -90,7 +92,7 @@ public class Board extends Entity<Board> implements BoardInterface
 		if (ps == null) return null;
 		ps = ps.getChunkCoords(true);
 		TerritoryAccess ret = this.map.get(ps);
-		if (ret == null) ret = TerritoryAccess.valueOf(UConf.get(this).factionIdNone);
+		if (ret == null) ret = TerritoryAccess.valueOf(Factions.ID_NONE);
 		return ret;
 	}
 	
@@ -99,7 +101,7 @@ public class Board extends Entity<Board> implements BoardInterface
 	{
 		if (ps == null) return null;
 		TerritoryAccess ta = this.getTerritoryAccessAt(ps);
-		return ta.getHostFaction(this);
+		return ta.getHostFaction();
 	}
 	
 	// SET
@@ -109,7 +111,7 @@ public class Board extends Entity<Board> implements BoardInterface
 	{
 		ps = ps.getChunkCoords(true);
 		
-		if (territoryAccess == null || (territoryAccess.getHostFactionId().equals(UConf.get(this).factionIdNone) && territoryAccess.isDefault()))
+		if (territoryAccess == null || (territoryAccess.getHostFactionId().equals(Factions.ID_NONE) && territoryAccess.isDefault()))
 		{	
 			this.map.remove(ps);
 		}
@@ -159,13 +161,12 @@ public class Board extends Entity<Board> implements BoardInterface
 	@Override
 	public void clean()
 	{
-		FactionColl factionColl = FactionColls.get().get(this);
-		
 		for (Entry<PS, TerritoryAccess> entry : this.map.entrySet())
 		{
 			TerritoryAccess territoryAccess = entry.getValue();
 			String factionId = territoryAccess.getHostFactionId();
-			if (factionColl.containsId(factionId)) continue;
+			
+			if (FactionColl.get().containsId(factionId)) continue;
 			
 			PS ps = entry.getKey();
 			this.removeAt(ps);
@@ -182,6 +183,7 @@ public class Board extends Entity<Board> implements BoardInterface
 		return this.getChunks(faction.getId());
 	}
 	
+	@Override
 	public Set<PS> getChunks(String factionId)
 	{
 		Set<PS> ret = new HashSet<PS>();
@@ -197,6 +199,35 @@ public class Board extends Entity<Board> implements BoardInterface
 		return ret;
 	}
 	
+	@Override
+	public Map<Faction, Set<PS>> getFactionToChunks()
+	{
+		Map<Faction, Set<PS>> ret = new MassiveMap<Faction, Set<PS>>();
+		
+		for (Entry<PS, TerritoryAccess> entry : this.map.entrySet())
+		{
+			// Get Faction
+			TerritoryAccess ta = entry.getValue();
+			Faction faction = ta.getHostFaction();
+			if (faction == null) continue;
+			
+			// Get Chunks
+			Set<PS> chunks = ret.get(faction);
+			if (chunks == null)
+			{
+				chunks = new MassiveSet<PS>();
+				ret.put(faction, chunks);
+			}
+			
+			// Add Chunk
+			PS chunk = entry.getKey();
+			chunk = chunk.withWorld(this.getId());
+			chunks.add(chunk);
+		}
+		
+		return ret;
+	}
+	
 	// COUNT
 	
 	@Override
@@ -205,15 +236,41 @@ public class Board extends Entity<Board> implements BoardInterface
 		return this.getCount(faction.getId());
 	}
 	
+	@Override
 	public int getCount(String factionId)
 	{
 		int ret = 0;
 		for (TerritoryAccess ta : this.map.values())
 		{
 			if (!ta.getHostFactionId().equals(factionId)) continue;
-			
 			ret += 1;
 		}
+		return ret;
+	}
+	
+	@Override
+	public Map<Faction, Integer> getFactionToCount()
+	{
+		Map<Faction, Integer> ret = new MassiveMap<Faction, Integer>();
+		
+		for (Entry<PS, TerritoryAccess> entry : this.map.entrySet())
+		{
+			// Get Faction
+			TerritoryAccess ta = entry.getValue();
+			Faction faction = ta.getHostFaction();
+			if (faction == null) continue;
+			
+			// Get Count
+			Integer count = ret.get(faction);
+			if (count == null)
+			{
+				count = 0;
+			}
+			
+			// Add Chunk
+			ret.put(faction, count + 1);
+		}
+		
 		return ret;
 	}
 	
@@ -243,6 +300,16 @@ public class Board extends Entity<Board> implements BoardInterface
 		
 		return false;
 	}
+	
+	@Override
+	public boolean isAnyBorderPs(Set<PS> pss)
+	{
+		for (PS ps : pss)
+		{
+			if (this.isBorderPs(ps)) return true;
+		}
+		return false;
+	}
 
 	// Is this coord connected to any coord claimed by the specified faction?
 	@Override
@@ -267,10 +334,20 @@ public class Board extends Entity<Board> implements BoardInterface
 		return false;
 	}
 	
+	@Override
+	public boolean isAnyConnectedPs(Set<PS> pss, Faction faction)
+	{
+		for (PS ps : pss)
+		{
+			if (this.isConnectedPs(ps, faction)) return true;
+		}
+		return false;
+	}
+	
 	// MAP GENERATION
 	
 	@Override
-	public ArrayList<String> getMap(RelationParticipator observer, PS centerPs, double inDegrees)
+	public ArrayList<String> getMap(RelationParticipator observer, PS centerPs, double inDegrees, int width, int height)
 	{
 		centerPs = centerPs.getChunkCoords(true);
 		
@@ -279,13 +356,12 @@ public class Board extends Entity<Board> implements BoardInterface
 		
 		ret.add(Txt.titleize("("+centerPs.getChunkX() + "," + centerPs.getChunkZ()+") "+centerFaction.getName(observer)));
 		
-		int halfWidth = Const.MAP_WIDTH / 2;
-		int halfHeight = Const.MAP_HEIGHT / 2;
+		int halfWidth = width / 2;
+		int halfHeight = height / 2;
+		width = halfWidth * 2 + 1;
+		height = halfHeight * 2 + 1;
 		
 		PS topLeftPs = centerPs.plusChunkCoords(-halfWidth, -halfHeight);
-		
-		int width = halfWidth * 2 + 1;
-		int height = halfHeight * 2 + 1;
 		
 		// Make room for the list of names
 		height--;

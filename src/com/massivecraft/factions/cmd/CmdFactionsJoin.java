@@ -2,19 +2,19 @@ package com.massivecraft.factions.cmd;
 
 import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.Perm;
-import com.massivecraft.factions.cmd.arg.ARUPlayer;
+import com.massivecraft.factions.cmd.arg.ARMPlayer;
 import com.massivecraft.factions.cmd.arg.ARFaction;
-import com.massivecraft.factions.cmd.req.ReqFactionsEnabled;
-import com.massivecraft.factions.entity.UPlayer;
-import com.massivecraft.factions.entity.Faction;
 import com.massivecraft.factions.entity.MConf;
-import com.massivecraft.factions.entity.UConf;
-import com.massivecraft.factions.event.FactionsEventMembershipChange;
-import com.massivecraft.factions.event.FactionsEventMembershipChange.MembershipChangeReason;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
-import com.massivecraft.mcore.util.Txt;
+import com.massivecraft.factions.entity.MFlag;
+import com.massivecraft.factions.entity.MPlayer;
+import com.massivecraft.factions.entity.Faction;
+import com.massivecraft.factions.event.EventFactionsMembershipChange;
+import com.massivecraft.factions.event.EventFactionsMembershipChange.MembershipChangeReason;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
+import com.massivecraft.massivecore.util.Txt;
 
-public class CmdFactionsJoin extends FCommand
+public class CmdFactionsJoin extends FactionsCommand
 {
 	// -------------------------------------------- //
 	// CONSTRUCT
@@ -30,7 +30,6 @@ public class CmdFactionsJoin extends FCommand
 		this.addOptionalArg("player", "you");
 
 		// Requirements
-		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.JOIN.node));
 	}
 
@@ -39,17 +38,15 @@ public class CmdFactionsJoin extends FCommand
 	// -------------------------------------------- //
 	
 	@Override
-	public void perform()
+	public void perform() throws MassiveException
 	{
 		// Args
-		Faction faction = this.arg(0, ARFaction.get(sender));
-		if (faction == null) return;
+		Faction faction = this.arg(0, ARFaction.get());		
 
-		UPlayer uplayer = this.arg(1, ARUPlayer.getStartAny(sender), usender);
-		if (uplayer == null) return;
-		Faction uplayerFaction = uplayer.getFaction();
+		MPlayer mplayer = this.arg(1, ARMPlayer.getAny(), msender);
+		Faction mplayerFaction = mplayer.getFaction();
 		
-		boolean samePlayer = uplayer == usender;
+		boolean samePlayer = mplayer == msender;
 		
 		// Validate
 		if (!samePlayer  && ! Perm.JOIN_OTHERS.has(sender, false))
@@ -58,69 +55,69 @@ public class CmdFactionsJoin extends FCommand
 			return;
 		}
 
-		if (faction == uplayerFaction)
+		if (faction == mplayerFaction)
 		{
-			msg("<i>%s <i>%s already a member of %s<i>.", uplayer.describeTo(usender, true), (samePlayer ? "are" : "is"), faction.getName(usender));
+			msg("<i>%s <i>%s already a member of %s<i>.", mplayer.describeTo(msender, true), (samePlayer ? "are" : "is"), faction.getName(msender));
 			return;
 		}
 
-		if (UConf.get(faction).factionMemberLimit > 0 && faction.getUPlayers().size() >= UConf.get(faction).factionMemberLimit)
+		if (MConf.get().factionMemberLimit > 0 && faction.getMPlayers().size() >= MConf.get().factionMemberLimit)
 		{
-			msg(" <b>!<white> The faction %s is at the limit of %d members, so %s cannot currently join.", faction.getName(usender), UConf.get(faction).factionMemberLimit, uplayer.describeTo(usender, false));
+			msg(" <b>!<white> The faction %s is at the limit of %d members, so %s cannot currently join.", faction.getName(msender), MConf.get().factionMemberLimit, mplayer.describeTo(msender, false));
 			return;
 		}
 
-		if (uplayerFaction.isNormal())
+		if (mplayerFaction.isNormal())
 		{
-			msg("<b>%s must leave %s current faction first.", uplayer.describeTo(usender, true), (samePlayer ? "your" : "their"));
+			msg("<b>%s must leave %s current faction first.", mplayer.describeTo(msender, true), (samePlayer ? "your" : "their"));
 			return;
 		}
 
-		if (!UConf.get(faction).canLeaveWithNegativePower && uplayer.getPower() < 0)
+		if (!MConf.get().canLeaveWithNegativePower && mplayer.getPower() < 0)
 		{
-			msg("<b>%s cannot join a faction with a negative power level.", uplayer.describeTo(usender, true));
+			msg("<b>%s cannot join a faction with a negative power level.", mplayer.describeTo(msender, true));
 			return;
 		}
 
-		if( ! (faction.isOpen() || faction.isInvited(uplayer) || usender.isUsingAdminMode() || Perm.JOIN_ANY.has(sender, false)))
+		if( ! (faction.getFlag(MFlag.getFlagOpen()) || faction.isInvited(mplayer) || msender.isUsingAdminMode() || Perm.JOIN_ANY.has(sender, false)))
 		{
 			msg("<i>This faction requires invitation.");
 			if (samePlayer)
 			{
-				faction.msg("%s<i> tried to join your faction.", uplayer.describeTo(faction, true));
+				faction.msg("%s<i> tried to join your faction.", mplayer.describeTo(faction, true));
 			}
 			return;
 		}
 
 		// Event
-		FactionsEventMembershipChange membershipChangeEvent = new FactionsEventMembershipChange(sender, usender, faction, MembershipChangeReason.JOIN);
+		EventFactionsMembershipChange membershipChangeEvent = new EventFactionsMembershipChange(sender, msender, faction, MembershipChangeReason.JOIN);
 		membershipChangeEvent.run();
 		if (membershipChangeEvent.isCancelled()) return;
 		
 		// Inform
 		if (!samePlayer)
 		{
-			uplayer.msg("<i>%s <i>moved you into the faction %s<i>.", usender.describeTo(uplayer, true), faction.getName(uplayer));
+			mplayer.msg("<i>%s <i>moved you into the faction %s<i>.", msender.describeTo(mplayer, true), faction.getName(mplayer));
 		}
-		faction.msg("<i>%s <i>joined <lime>your faction<i>.", uplayer.describeTo(faction, true));
-		usender.msg("<i>%s <i>successfully joined %s<i>.", uplayer.describeTo(usender, true), faction.getName(usender));
+		faction.msg("<i>%s <i>joined <lime>your faction<i>.", mplayer.describeTo(faction, true));
+		msender.msg("<i>%s <i>successfully joined %s<i>.", mplayer.describeTo(msender, true), faction.getName(msender));
 		
 		// Apply
-		uplayer.resetFactionData();
-		uplayer.setFaction(faction);
+		mplayer.resetFactionData();
+		mplayer.setFaction(faction);
 	    
-		faction.setInvited(uplayer, false);
+		faction.setInvited(mplayer, false);
 
 		// Derplog
 		if (MConf.get().logFactionJoin)
 		{
 			if (samePlayer)
 			{
-				Factions.get().log(Txt.parse("%s joined the faction %s.", uplayer.getName(), faction.getName()));
+				Factions.get().log(Txt.parse("%s joined the faction %s.", mplayer.getName(), faction.getName()));
 			}
 			else
 			{
-				Factions.get().log(Txt.parse("%s moved the player %s into the faction %s.", usender.getName(), uplayer.getName(), faction.getName()));
+				Factions.get().log(Txt.parse("%s moved the player %s into the faction %s.", msender.getName(), mplayer.getName(), faction.getName()));
 			}
 		}
 	}

@@ -3,17 +3,16 @@ package com.massivecraft.factions.cmd;
 import org.bukkit.ChatColor;
 
 import com.massivecraft.factions.Perm;
-import com.massivecraft.factions.Rel;
-import com.massivecraft.factions.cmd.arg.ARUPlayer;
-import com.massivecraft.factions.cmd.req.ReqFactionsEnabled;
-import com.massivecraft.factions.cmd.req.ReqRoleIsAtLeast;
-import com.massivecraft.factions.entity.UPlayer;
-import com.massivecraft.factions.event.FactionsEventTitleChange;
-import com.massivecraft.mcore.cmd.arg.ARString;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
-import com.massivecraft.mcore.util.Txt;
+import com.massivecraft.factions.cmd.arg.ARMPlayer;
+import com.massivecraft.factions.entity.MPerm;
+import com.massivecraft.factions.entity.MPlayer;
+import com.massivecraft.factions.event.EventFactionsTitleChange;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.arg.ARString;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
+import com.massivecraft.massivecore.util.Txt;
 
-public class CmdFactionsTitle extends FCommand
+public class CmdFactionsTitle extends FactionsCommand
 {
 	// -------------------------------------------- //
 	// CONSTRUCT
@@ -29,9 +28,7 @@ public class CmdFactionsTitle extends FCommand
 		this.addOptionalArg("title", "");
 
 		// Requirements
-		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.TITLE.node));
-		this.addRequirements(ReqRoleIsAtLeast.get(Rel.OFFICER));
 	}
 
 	// -------------------------------------------- //
@@ -39,14 +36,11 @@ public class CmdFactionsTitle extends FCommand
 	// -------------------------------------------- //
 	
 	@Override
-	public void perform()
+	public void perform() throws MassiveException
 	{
 		// Args
-		UPlayer you = this.arg(0, ARUPlayer.getStartAny(sender));
-		if (you == null) return;
-		
+		MPlayer you = this.arg(0, ARMPlayer.getAny());
 		String newTitle = this.argConcatFrom(1, ARString.get(), "");
-		if (newTitle == null) return;
 		
 		newTitle = Txt.parse(newTitle);
 		if (!Perm.TITLE_COLOR.has(sender, false))
@@ -54,11 +48,14 @@ public class CmdFactionsTitle extends FCommand
 			newTitle = ChatColor.stripColor(newTitle);
 		}
 		
+		// MPerm
+		if ( ! MPerm.getPermTitle().has(msender, you.getFaction(), true)) return;
+		
 		// Verify
-		if ( ! canIAdministerYou(usender, you)) return;
+		if ( ! canIAdministerYou(msender, you)) return;
 
 		// Event
-		FactionsEventTitleChange event = new FactionsEventTitleChange(sender, you, newTitle);
+		EventFactionsTitleChange event = new EventFactionsTitleChange(sender, you, newTitle);
 		event.run();
 		if (event.isCancelled()) return;
 		newTitle = event.getNewTitle();
@@ -67,7 +64,7 @@ public class CmdFactionsTitle extends FCommand
 		you.setTitle(newTitle);
 		
 		// Inform
-		usenderFaction.msg("%s<i> changed a title: %s", usender.describeTo(usenderFaction, true), you.describeTo(usenderFaction, true));
+		msenderFaction.msg("%s<i> changed a title: %s", msender.describeTo(msenderFaction, true), you.describeTo(msenderFaction, true));
 	}
 	
 }

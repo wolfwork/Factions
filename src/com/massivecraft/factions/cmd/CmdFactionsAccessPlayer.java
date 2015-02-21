@@ -1,12 +1,13 @@
 package com.massivecraft.factions.cmd;
 
-import com.massivecraft.factions.FPerm;
 import com.massivecraft.factions.Perm;
-import com.massivecraft.factions.cmd.arg.ARUPlayer;
-import com.massivecraft.factions.entity.BoardColls;
-import com.massivecraft.factions.entity.UPlayer;
-import com.massivecraft.mcore.cmd.arg.ARBoolean;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
+import com.massivecraft.factions.cmd.arg.ARMPlayer;
+import com.massivecraft.factions.entity.BoardColl;
+import com.massivecraft.factions.entity.MPerm;
+import com.massivecraft.factions.entity.MPlayer;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.arg.ARBoolean;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
 
 public class CmdFactionsAccessPlayer extends CmdFactionsAccessAbstract
 {
@@ -32,21 +33,18 @@ public class CmdFactionsAccessPlayer extends CmdFactionsAccessAbstract
 	// -------------------------------------------- //
 	
 	@Override
-	public void innerPerform()
+	public void innerPerform() throws MassiveException
 	{
 		// Args
-		UPlayer uplayer = this.arg(0, ARUPlayer.getStartAny(usender));
-		if (uplayer == null) return;
+		MPlayer mplayer = this.arg(0, ARMPlayer.getAny());
+		Boolean newValue = this.arg(1, ARBoolean.get(), !ta.isPlayerIdGranted(mplayer.getId()));
 		
-		Boolean newValue = this.arg(1, ARBoolean.get(), !ta.isPlayerIdGranted(uplayer.getId()));
-		if (newValue == null) return;
-		
-		// FPerm
-		if (!FPerm.ACCESS.has(usender, hostFaction, true)) return;
+		// MPerm
+		if (!MPerm.getPermAccess().has(msender, hostFaction, true)) return;
 		
 		// Apply
-		ta = ta.withPlayerId(uplayer.getId(), newValue);
-		BoardColls.get().setTerritoryAccessAt(chunk, ta);
+		ta = ta.withPlayerId(mplayer.getId(), newValue);
+		BoardColl.get().setTerritoryAccessAt(chunk, ta);
 		
 		// Inform
 		this.sendAccessInfo();

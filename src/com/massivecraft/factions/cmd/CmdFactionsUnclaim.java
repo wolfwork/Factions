@@ -1,16 +1,22 @@
 package com.massivecraft.factions.cmd;
 
-import com.massivecraft.factions.cmd.req.ReqFactionsEnabled;
-import com.massivecraft.factions.cmd.req.ReqHasFaction;
-import com.massivecraft.factions.entity.Faction;
-import com.massivecraft.factions.entity.FactionColls;
 import com.massivecraft.factions.Perm;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
-import com.massivecraft.mcore.cmd.req.ReqIsPlayer;
-import com.massivecraft.mcore.ps.PS;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
 
-public class CmdFactionsUnclaim extends FCommand
+
+public class CmdFactionsUnclaim extends FactionsCommand
 {
+	// -------------------------------------------- //
+	// FIELDS
+	// -------------------------------------------- //
+	
+	public CmdFactionsSetOne cmdFactionsUnclaimOne = new CmdFactionsSetOne(false);
+	public CmdFactionsSetAuto cmdFactionsUnclaimAuto = new CmdFactionsSetAuto(false);
+	public CmdFactionsSetFill cmdFactionsUnclaimFill = new CmdFactionsSetFill(false);
+	public CmdFactionsSetSquare cmdFactionsUnclaimSquare = new CmdFactionsSetSquare(false);
+	public CmdFactionsSetCircle cmdFactionsUnclaimCircle = new CmdFactionsSetCircle(false);
+	public CmdFactionsSetAll cmdFactionsUnclaimAll = new CmdFactionsSetAll(false);
+	
 	// -------------------------------------------- //
 	// CONSTRUCT
 	// -------------------------------------------- //
@@ -19,27 +25,17 @@ public class CmdFactionsUnclaim extends FCommand
 	{
 		// Aliases
 		this.addAliases("unclaim");
-
+		
+		// Add SubCommands
+		this.addSubCommand(this.cmdFactionsUnclaimOne);
+		this.addSubCommand(this.cmdFactionsUnclaimAuto);
+		this.addSubCommand(this.cmdFactionsUnclaimFill);
+		this.addSubCommand(this.cmdFactionsUnclaimSquare);
+		this.addSubCommand(this.cmdFactionsUnclaimCircle);
+		this.addSubCommand(this.cmdFactionsUnclaimAll);
+		
 		// Requirements
-		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.UNCLAIM.node));
-		this.addRequirements(ReqHasFaction.get());
-		this.addRequirements(ReqIsPlayer.get());
-	}
-
-	// -------------------------------------------- //
-	// OVERRIDE
-	// -------------------------------------------- //
-	
-	@Override
-	public void perform()
-	{
-		// Args
-		PS chunk = PS.valueOf(me).getChunk(true);
-		Faction newFaction = FactionColls.get().get(me).getNone();
-
-		// Apply
-		if (usender.tryClaim(newFaction, chunk, true, true)) return;
 	}
 	
 }

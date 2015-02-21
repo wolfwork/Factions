@@ -2,9 +2,9 @@ package com.massivecraft.factions;
 
 import java.util.Comparator;
 
-import com.massivecraft.factions.entity.UPlayer;
+import com.massivecraft.factions.entity.MPlayer;
 
-public class PlayerRoleComparator implements Comparator<UPlayer>
+public class PlayerRoleComparator implements Comparator<MPlayer>
 {
 	// -------------------------------------------- //
 	// INSTANCE & CONSTRUCT
@@ -18,19 +18,16 @@ public class PlayerRoleComparator implements Comparator<UPlayer>
 	// -------------------------------------------- //
 	
 	@Override
-	public int compare(UPlayer o1, UPlayer o2)
+	public int compare(MPlayer m1, MPlayer m2)
 	{
-		int ret = 0;
-		
 		// Null
-		if (o1 == null && o2 == null) ret = 0;
-		if (o1 == null) ret = -1;
-		if (o2 == null) ret = +1;
-		if (ret != 0) return ret;
+		if (m1 == null && m2 == null) return 0;
+		else if (m1 == null) return -1;
+		else if (m2 == null) return +1;
 		
 		// Rank
-		Rel r1 = o1.getRole();
-		Rel r2 = o2.getRole();
+		Rel r1 = m1.getRole();
+		Rel r2 = m2.getRole();
 		return r2.getValue() - r1.getValue();
 	}
 

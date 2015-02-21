@@ -6,16 +6,16 @@ import java.util.List;
 
 import com.massivecraft.factions.RelationParticipator;
 import com.massivecraft.factions.TerritoryAccess;
-import com.massivecraft.factions.cmd.req.ReqFactionsEnabled;
-import com.massivecraft.factions.entity.BoardColls;
+import com.massivecraft.factions.entity.BoardColl;
 import com.massivecraft.factions.entity.Faction;
-import com.massivecraft.mcore.cmd.req.ReqIsPlayer;
-import com.massivecraft.mcore.ps.PS;
-import com.massivecraft.mcore.ps.PSFormatHumanSpace;
-import com.massivecraft.mcore.util.Txt;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.req.ReqIsPlayer;
+import com.massivecraft.massivecore.ps.PS;
+import com.massivecraft.massivecore.ps.PSFormatHumanSpace;
+import com.massivecraft.massivecore.util.Txt;
 
 
-public abstract class CmdFactionsAccessAbstract extends FCommand
+public abstract class CmdFactionsAccessAbstract extends FactionsCommand
 {
 	// -------------------------------------------- //
 	// FIELDS
@@ -32,7 +32,6 @@ public abstract class CmdFactionsAccessAbstract extends FCommand
 	public CmdFactionsAccessAbstract()
 	{
 		// Requirements
-		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqIsPlayer.get());
 	}
 	
@@ -41,24 +40,24 @@ public abstract class CmdFactionsAccessAbstract extends FCommand
 	// -------------------------------------------- //
 	
 	@Override
-	public void perform()
+	public void perform() throws MassiveException
 	{
-		chunk = PS.valueOf(me).getChunk(true);
-		ta = BoardColls.get().getTerritoryAccessAt(chunk);
-		hostFaction = ta.getHostFaction(usender);
+		chunk = PS.valueOf(me.getLocation()).getChunk(true);
+		ta = BoardColl.get().getTerritoryAccessAt(chunk);
+		hostFaction = ta.getHostFaction();
 		
 		this.innerPerform();
 	}
 	
-	public abstract void innerPerform();
+	public abstract void innerPerform() throws MassiveException;
 
 	public void sendAccessInfo()
 	{
 		sendMessage(Txt.titleize("Access at " + chunk.toString(PSFormatHumanSpace.get())));
-		msg("<k>Host Faction: %s", hostFaction.describeTo(usender, true));
+		msg("<k>Host Faction: %s", hostFaction.describeTo(msender, true));
 		msg("<k>Host Faction Allowed: %s", ta.isHostFactionAllowed() ? Txt.parse("<lime>TRUE") : Txt.parse("<rose>FALSE"));
-		msg("<k>Granted Players: %s", describeRelationParticipators(ta.getGrantedUPlayers(usender), usender));
-		msg("<k>Granted Factions: %s", describeRelationParticipators(ta.getGrantedFactions(usender), usender));
+		msg("<k>Granted Players: %s", describeRelationParticipators(ta.getGrantedMPlayers(), msender));
+		msg("<k>Granted Factions: %s", describeRelationParticipators(ta.getGrantedFactions(), msender));
 	}
 	
 	public static String describeRelationParticipators(Collection<? extends RelationParticipator> relationParticipators, RelationParticipator observer)

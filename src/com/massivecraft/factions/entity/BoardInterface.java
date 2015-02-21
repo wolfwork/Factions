@@ -1,11 +1,12 @@
 package com.massivecraft.factions.entity;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 
 import com.massivecraft.factions.RelationParticipator;
 import com.massivecraft.factions.TerritoryAccess;
-import com.massivecraft.mcore.ps.PS;
+import com.massivecraft.massivecore.ps.PS;
 
 public interface BoardInterface
 {
@@ -24,16 +25,22 @@ public interface BoardInterface
 
 	// CHUNKS
 	public Set<PS> getChunks(Faction faction);
+	public Set<PS> getChunks(String factionId);
+	public Map<Faction, Set<PS>> getFactionToChunks();
 	
 	// COUNT
 	public int getCount(Faction faction);
+	public int getCount(String factionId);
+	public Map<Faction, Integer> getFactionToCount();
 	
 	// NEARBY DETECTION
 	public boolean isBorderPs(PS ps);
+	public boolean isAnyBorderPs(Set<PS> pss);
 	public boolean isConnectedPs(PS ps, Faction faction);
+	public boolean isAnyConnectedPs(Set<PS> pss, Faction faction);
 	
 	// MAP
 	// TODO: Could the degrees be embedded in centerPs yaw instead?
-	public ArrayList<String> getMap(RelationParticipator observer, PS centerPs, double inDegrees);
+	public ArrayList<String> getMap(RelationParticipator observer, PS centerPs, double inDegrees, int width, int height);
 	
 }

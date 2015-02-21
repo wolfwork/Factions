@@ -1,12 +1,13 @@
 package com.massivecraft.factions.cmd;
 
-import com.massivecraft.factions.FPerm;
 import com.massivecraft.factions.Perm;
 import com.massivecraft.factions.cmd.arg.ARFaction;
-import com.massivecraft.factions.entity.BoardColls;
+import com.massivecraft.factions.entity.BoardColl;
 import com.massivecraft.factions.entity.Faction;
-import com.massivecraft.mcore.cmd.arg.ARBoolean;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
+import com.massivecraft.factions.entity.MPerm;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.arg.ARBoolean;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
 
 public class CmdFactionsAccessFaction extends CmdFactionsAccessAbstract
 {
@@ -32,21 +33,18 @@ public class CmdFactionsAccessFaction extends CmdFactionsAccessAbstract
 	// -------------------------------------------- //
 	
 	@Override
-	public void innerPerform()
+	public void innerPerform() throws MassiveException
 	{
 		// Args
-		Faction faction = this.arg(0, ARFaction.get(usender));
-		if (faction == null) return;
-		
+		Faction faction = this.arg(0, ARFaction.get());
 		Boolean newValue = this.arg(1, ARBoolean.get(), !ta.isFactionIdGranted(faction.getId()));
-		if (newValue == null) return;
 		
-		// FPerm
-		if (!FPerm.ACCESS.has(usender, hostFaction, true)) return;
+		// MPerm
+		if (!MPerm.getPermAccess().has(msender, hostFaction, true)) return;
 		
 		// Apply
 		ta = ta.withFactionId(faction.getId(), newValue);
-		BoardColls.get().setTerritoryAccessAt(chunk, ta);
+		BoardColl.get().setTerritoryAccessAt(chunk, ta);
 		
 		// Inform
 		this.sendAccessInfo();

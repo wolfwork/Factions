@@ -1,11 +1,12 @@
 package com.massivecraft.factions.task;
 
+import org.bukkit.plugin.Plugin;
+
+import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.entity.MConf;
-import com.massivecraft.factions.entity.UConf;
-import com.massivecraft.factions.entity.UPlayerColl;
-import com.massivecraft.factions.entity.UPlayerColls;
-import com.massivecraft.mcore.ModuloRepeatTask;
-import com.massivecraft.mcore.util.TimeUnit;
+import com.massivecraft.factions.entity.MPlayerColl;
+import com.massivecraft.massivecore.ModuloRepeatTask;
+import com.massivecraft.massivecore.util.TimeUnit;
 
 public class TaskPlayerDataRemove extends ModuloRepeatTask
 {
@@ -19,6 +20,12 @@ public class TaskPlayerDataRemove extends ModuloRepeatTask
 	// -------------------------------------------- //
 	// OVERRIDE: MODULO REPEAT TASK
 	// -------------------------------------------- //
+	
+	@Override
+	public Plugin getPlugin()
+	{
+		return Factions.get();
+	}
 	
 	@Override
 	public long getDelayMillis()
@@ -35,13 +42,7 @@ public class TaskPlayerDataRemove extends ModuloRepeatTask
 	@Override
 	public void invoke(long now)
 	{
-		for (UPlayerColl coll : UPlayerColls.get().getColls())
-		{
-			// Check disabled
-			if (UConf.isDisabled(coll)) continue;
-			
-			coll.removePlayerDataAfterInactiveDaysRoutine();
-		}
+		MPlayerColl.get().considerRemovePlayerMillis();
 	}
 	
 }

@@ -1,15 +1,16 @@
 package com.massivecraft.factions.task;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
+import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.entity.MConf;
-import com.massivecraft.factions.entity.UConf;
-import com.massivecraft.factions.entity.UPlayer;
-import com.massivecraft.factions.event.FactionsEventPowerChange;
-import com.massivecraft.factions.event.FactionsEventPowerChange.PowerChangeReason;
-import com.massivecraft.mcore.ModuloRepeatTask;
-import com.massivecraft.mcore.util.TimeUnit;
+import com.massivecraft.factions.entity.MPlayer;
+import com.massivecraft.factions.event.EventFactionsPowerChange;
+import com.massivecraft.factions.event.EventFactionsPowerChange.PowerChangeReason;
+import com.massivecraft.massivecore.ModuloRepeatTask;
+import com.massivecraft.massivecore.util.MUtil;
+import com.massivecraft.massivecore.util.TimeUnit;
 
 public class TaskPlayerPowerUpdate extends ModuloRepeatTask
 {
@@ -23,6 +24,12 @@ public class TaskPlayerPowerUpdate extends ModuloRepeatTask
 	// -------------------------------------------- //
 	// OVERRIDE: MODULO REPEAT TASK
 	// -------------------------------------------- //
+	
+	@Override
+	public Plugin getPlugin()
+	{
+		return Factions.get();
+	}
 	
 	@Override
 	public long getDelayMillis()
@@ -41,22 +48,19 @@ public class TaskPlayerPowerUpdate extends ModuloRepeatTask
 	{
 		long millis = this.getDelayMillis();
 		
-		for (Player player : Bukkit.getOnlinePlayers())
+		for (Player player : MUtil.getOnlinePlayers())
 		{
-			// Check disabled
-			if (UConf.isDisabled(player)) continue;
-						
 			if (player.isDead()) continue;
 			
-			UPlayer uplayer = UPlayer.get(player);
-			double newPower = uplayer.getPower() + uplayer.getPowerPerHour() * millis / TimeUnit.MILLIS_PER_HOUR;
+			MPlayer mplayer = MPlayer.get(player);
+			double newPower = mplayer.getPower() + mplayer.getPowerPerHour() * millis / TimeUnit.MILLIS_PER_HOUR;
 			
-			FactionsEventPowerChange event = new FactionsEventPowerChange(null, uplayer, PowerChangeReason.TIME, newPower);
+			EventFactionsPowerChange event = new EventFactionsPowerChange(null, mplayer, PowerChangeReason.TIME, newPower);
 			event.run();
 			if (event.isCancelled()) continue;
 			newPower = event.getNewPower();
 			
-			uplayer.setPower(newPower);
+			mplayer.setPower(newPower);
 		}
 	}
 	

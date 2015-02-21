@@ -2,15 +2,13 @@ package com.massivecraft.factions.cmd.arg;
 
 import org.bukkit.command.CommandSender;
 
-import com.massivecraft.factions.entity.UPlayer;
-import com.massivecraft.factions.entity.UPlayerColls;
+import com.massivecraft.factions.entity.MPlayer;
 import com.massivecraft.factions.entity.Faction;
 import com.massivecraft.factions.entity.FactionColl;
-import com.massivecraft.factions.entity.FactionColls;
-import com.massivecraft.mcore.cmd.arg.ArgReaderAbstract;
-import com.massivecraft.mcore.cmd.arg.ArgResult;
-import com.massivecraft.mcore.util.IdUtil;
-import com.massivecraft.mcore.util.Txt;
+import com.massivecraft.massivecore.MassiveCore;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.arg.ArgReaderAbstract;
+import com.massivecraft.massivecore.util.IdUtil;
 
 public class ARFaction extends ArgReaderAbstract<Faction>
 {
@@ -18,47 +16,44 @@ public class ARFaction extends ArgReaderAbstract<Faction>
 	// INSTANCE & CONSTRUCT
 	// -------------------------------------------- //
 	
-	public static ARFaction get(Object universe) { return new ARFaction(FactionColls.get().get(universe)); }
-	private ARFaction(FactionColl coll)
-	{
-		this.coll = coll;
-	}
-	
-	// -------------------------------------------- //
-	// FIELDS
-	// -------------------------------------------- //
-	
-	private final FactionColl coll;
-	public FactionColl getColl() { return this.coll;}
+	private static ARFaction i = new ARFaction();
+	public static ARFaction get() { return i; }
 	
 	// -------------------------------------------- //
 	// OVERRIDE
 	// -------------------------------------------- //
 	
 	@Override
-	public ArgResult<Faction> read(String str, CommandSender sender)
+	public Faction read(String str, CommandSender sender) throws MassiveException
 	{
-		ArgResult<Faction> result = new ArgResult<Faction>();
+		Faction ret;
 		
-		// Faction Name Exact 
-		result.setResult(this.getColl().getByName(str));
-		if (result.hasResult()) return result;
-		
-		// Faction Name Match
-		result.setResult(this.getColl().getBestNameMatch(str));
-		if (result.hasResult()) return result;
-		
-		// UPlayer Name Exact
-		String id = IdUtil.getId(str);
-		UPlayer uplayer = UPlayerColls.get().get(this.getColl()).get(id);
-		if (uplayer != null)
+		// Nothing/Remove targets Wilderness
+		if (MassiveCore.NOTHING_REMOVE.contains(str))
 		{
-			result.setResult(uplayer.getFaction());
-			return result;
+			return FactionColl.get().getNone();
 		}
 		
-		result.setErrors(Txt.parse("<b>No faction or player matching \"<p>%s<b>\".", str));
-		return result;
+		// Faction Id Exact
+		if (FactionColl.get().containsId(str))
+		{
+			ret = FactionColl.get().get(str);
+			if (ret != null) return ret;
+		}
+		
+		// Faction Name Exact
+		ret = FactionColl.get().getByName(str);
+		if (ret != null) return ret;
+		
+		// MPlayer Name Exact
+		String id = IdUtil.getId(str);
+		MPlayer mplayer = MPlayer.get(id);
+		if (mplayer != null)
+		{
+			return mplayer.getFaction();
+		}
+		
+		throw new MassiveException().addMsg("<b>No faction or player matching \"<p>%s<b>\".", str);
 	}
 	
 }

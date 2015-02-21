@@ -1,14 +1,19 @@
 package com.massivecraft.factions.cmd;
 
-import com.massivecraft.factions.Perm;
-import com.massivecraft.factions.cmd.req.ReqFactionsEnabled;
-import com.massivecraft.factions.entity.BoardColls;
-import com.massivecraft.mcore.cmd.arg.ARBoolean;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
-import com.massivecraft.mcore.cmd.req.ReqIsPlayer;
-import com.massivecraft.mcore.ps.PS;
+import java.util.List;
 
-public class CmdFactionsMap extends FCommand
+import org.bukkit.Location;
+
+import com.massivecraft.factions.Const;
+import com.massivecraft.factions.Perm;
+import com.massivecraft.factions.entity.BoardColl;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.arg.ARBoolean;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
+import com.massivecraft.massivecore.cmd.req.ReqIsPlayer;
+import com.massivecraft.massivecore.ps.PS;
+
+public class CmdFactionsMap extends FactionsCommand
 {
 	// -------------------------------------------- //
 	// CONSTRUCT
@@ -23,7 +28,6 @@ public class CmdFactionsMap extends FCommand
 		this.addOptionalArg("on/off", "once");
 
 		// Requirements
-		this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.MAP.node));
 		this.addRequirements(ReqIsPlayer.get());
 	}
@@ -33,18 +37,18 @@ public class CmdFactionsMap extends FCommand
 	// -------------------------------------------- //
 	
 	@Override
-	public void perform()
+	public void perform() throws MassiveException
 	{
-		if (!this.argIsSet(0))
+		if ( ! this.argIsSet(0))
 		{
-			showMap();
+			showMap(Const.MAP_WIDTH, Const.MAP_HEIGHT_FULL);
 			return;
 		}
 		
 		if (this.arg(0, ARBoolean.get(), !msender.isMapAutoUpdating()))
 		{
 			// And show the map once
-			showMap();
+			showMap(Const.MAP_WIDTH, Const.MAP_HEIGHT);
 			
 			// Turn on
 			msender.setMapAutoUpdating(true);
@@ -58,9 +62,11 @@ public class CmdFactionsMap extends FCommand
 		}
 	}
 	
-	public void showMap()
+	public void showMap(int width, int height)
 	{
-		sendMessage(BoardColls.get().getMap(usenderFaction, PS.valueOf(me), me.getLocation().getYaw()));
+		Location location = me.getLocation();
+		List<String> message = BoardColl.get().getMap(msenderFaction, PS.valueOf(location), location.getYaw(), width, height);
+		sendMessage(message);
 	}
 	
 }

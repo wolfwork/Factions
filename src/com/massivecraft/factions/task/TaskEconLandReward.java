@@ -1,11 +1,12 @@
 package com.massivecraft.factions.task;
 
+import org.bukkit.plugin.Plugin;
+
+import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.entity.FactionColl;
-import com.massivecraft.factions.entity.FactionColls;
 import com.massivecraft.factions.entity.MConf;
-import com.massivecraft.factions.entity.UConf;
-import com.massivecraft.mcore.ModuloRepeatTask;
-import com.massivecraft.mcore.util.TimeUnit;
+import com.massivecraft.massivecore.ModuloRepeatTask;
+import com.massivecraft.massivecore.util.TimeUnit;
 
 public class TaskEconLandReward extends ModuloRepeatTask
 {
@@ -19,6 +20,12 @@ public class TaskEconLandReward extends ModuloRepeatTask
 	// -------------------------------------------- //
 	// OVERRIDE: MODULO REPEAT TASK
 	// -------------------------------------------- //
+	
+	@Override
+	public Plugin getPlugin()
+	{
+		return Factions.get();
+	}
 	
 	@Override
 	public long getDelayMillis()
@@ -35,13 +42,7 @@ public class TaskEconLandReward extends ModuloRepeatTask
 	@Override
 	public void invoke(long now)
 	{
-		for (FactionColl coll : FactionColls.get().getColls())
-		{
-			// Check disabled
-			if (UConf.isDisabled(coll)) continue;
-						
-			coll.econLandRewardRoutine();
-		}
+		FactionColl.get().econLandRewardRoutine();
 	}
 	
 }

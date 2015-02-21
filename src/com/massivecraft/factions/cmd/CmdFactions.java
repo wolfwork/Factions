@@ -5,10 +5,10 @@ import java.util.List;
 import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.Perm;
 import com.massivecraft.factions.entity.MConf;
-import com.massivecraft.mcore.cmd.HelpCommand;
-import com.massivecraft.mcore.cmd.VersionCommand;
+import com.massivecraft.massivecore.cmd.HelpCommand;
+import com.massivecraft.massivecore.cmd.VersionCommand;
 
-public class CmdFactions extends FCommand
+public class CmdFactions extends FactionsCommand
 {
 	// -------------------------------------------- //
 	// FIELDS
@@ -24,21 +24,23 @@ public class CmdFactions extends FCommand
 	public CmdFactionsCreate cmdFactionsCreate = new CmdFactionsCreate();
 	public CmdFactionsName cmdFactionsName = new CmdFactionsName();
 	public CmdFactionsDescription cmdFactionsDescription = new CmdFactionsDescription();
+	public CmdFactionsMotd cmdFactionsMotd = new CmdFactionsMotd();
 	public CmdFactionsSethome cmdFactionsSethome = new CmdFactionsSethome();
-	public CmdFactionsOpen cmdFactionsOpen = new CmdFactionsOpen();
+	public CmdFactionsUnsethome cmdFactionsUnsethome = new CmdFactionsUnsethome();
 	public CmdFactionsInvite cmdFactionsInvite = new CmdFactionsInvite();
 	public CmdFactionsKick cmdFactionsKick = new CmdFactionsKick();
 	public CmdFactionsTitle cmdFactionsTitle = new CmdFactionsTitle();
-	public CmdFactionsPromote cmdFactionsPromote = new CmdFactionsPromote();
-	public CmdFactionsDemote cmdFactionsDemote = new CmdFactionsDemote();
-	public CmdFactionsOfficer cmdFactionsOfficer = new CmdFactionsOfficer();
-	public CmdFactionsLeader cmdFactionsLeader = new CmdFactionsLeader();
+	public CmdFactionsRank cmdFactionsRank = new CmdFactionsRank();
+	public CmdFactionsRankOld cmdFactionsRankOldLeader = new CmdFactionsRankOld("leader");
+	public CmdFactionsRankOld cmdFactionsRankOldOfficer = new CmdFactionsRankOld("officer");
+	public CmdFactionsRankOld cmdFactionsRankOldPromote = new CmdFactionsRankOld("promote");
+	public CmdFactionsRankOld cmdFactionsRankOldDemote = new CmdFactionsRankOld("demote");
 	public CmdFactionsMoney cmdFactionsMoney = new CmdFactionsMoney();
 	public CmdFactionsSeeChunk cmdFactionsSeeChunk = new CmdFactionsSeeChunk();
+	public CmdFactionsSeeChunkOld cmdFactionsSeeChunkOld = new CmdFactionsSeeChunkOld();
+	public CmdFactionsStatus cmdFactionsStatus = new CmdFactionsStatus();
 	public CmdFactionsClaim cmdFactionsClaim = new CmdFactionsClaim();
-	public CmdFactionsAutoClaim cmdFactionsAutoClaim = new CmdFactionsAutoClaim();
 	public CmdFactionsUnclaim cmdFactionsUnclaim = new CmdFactionsUnclaim();
-	public CmdFactionsUnclaimall cmdFactionsUnclaimall = new CmdFactionsUnclaimall();
 	public CmdFactionsAccess cmdFactionsAccess = new CmdFactionsAccess();
 	public CmdFactionsRelationAlly cmdFactionsRelationAlly = new CmdFactionsRelationAlly();
 	public CmdFactionsRelationTruce cmdFactionsRelationTruce = new CmdFactionsRelationTruce();
@@ -46,9 +48,13 @@ public class CmdFactions extends FCommand
 	public CmdFactionsRelationEnemy cmdFactionsRelationEnemy = new CmdFactionsRelationEnemy();
 	public CmdFactionsPerm cmdFactionsPerm = new CmdFactionsPerm();
 	public CmdFactionsFlag cmdFactionsFlag = new CmdFactionsFlag();
-	public CmdFactionsDisband cmdFactionsDisband = new CmdFactionsDisband();
+	public CmdFactionsExpansions cmdFactionsExpansions = new CmdFactionsExpansions();
+	public CmdFactionsXPlaceholder cmdFactionsTax = new CmdFactionsXPlaceholder("FactionsTax", "tax");
+	public CmdFactionsXPlaceholder cmdFactionsDynmap = new CmdFactionsXPlaceholder("FactionsDynmap", "dynmap");
 	public CmdFactionsAdmin cmdFactionsAdmin = new CmdFactionsAdmin();
+	public CmdFactionsDisband cmdFactionsDisband = new CmdFactionsDisband();
 	public CmdFactionsPowerBoost cmdFactionsPowerBoost = new CmdFactionsPowerBoost();
+	public CmdFactionsSetpower cmdFactionsSetpower = new CmdFactionsSetpower();
 	public VersionCommand cmdFactionsVersion = new VersionCommand(Factions.get(), Perm.VERSION.node, "v", "version");
 	
 	// -------------------------------------------- //
@@ -57,11 +63,12 @@ public class CmdFactions extends FCommand
 	
 	public CmdFactions()
 	{
-		// Add SubCommands
+		// SubCommands
 		this.addSubCommand(HelpCommand.get());
 		this.addSubCommand(this.cmdFactionsList);
 		this.addSubCommand(this.cmdFactionsFaction);
 		this.addSubCommand(this.cmdFactionsPlayer);
+		this.addSubCommand(this.cmdFactionsStatus);
 		this.addSubCommand(this.cmdFactionsJoin);
 		this.addSubCommand(this.cmdFactionsLeave);
 		this.addSubCommand(this.cmdFactionsHome);
@@ -69,21 +76,22 @@ public class CmdFactions extends FCommand
 		this.addSubCommand(this.cmdFactionsCreate);
 		this.addSubCommand(this.cmdFactionsName);
 		this.addSubCommand(this.cmdFactionsDescription);
+		this.addSubCommand(this.cmdFactionsMotd);
 		this.addSubCommand(this.cmdFactionsSethome);
-		this.addSubCommand(this.cmdFactionsOpen);
+		this.addSubCommand(this.cmdFactionsUnsethome);
 		this.addSubCommand(this.cmdFactionsInvite);
 		this.addSubCommand(this.cmdFactionsKick);
 		this.addSubCommand(this.cmdFactionsTitle);
-		this.addSubCommand(this.cmdFactionsPromote);
-		this.addSubCommand(this.cmdFactionsDemote);
-		this.addSubCommand(this.cmdFactionsOfficer);
-		this.addSubCommand(this.cmdFactionsLeader);
+		this.addSubCommand(this.cmdFactionsRank);
+		this.addSubCommand(this.cmdFactionsRankOldLeader);
+		this.addSubCommand(this.cmdFactionsRankOldOfficer);
+		this.addSubCommand(this.cmdFactionsRankOldPromote);
+		this.addSubCommand(this.cmdFactionsRankOldDemote);
 		this.addSubCommand(this.cmdFactionsMoney);
 		this.addSubCommand(this.cmdFactionsSeeChunk);
+		this.addSubCommand(this.cmdFactionsSeeChunkOld);
 		this.addSubCommand(this.cmdFactionsClaim);
-		this.addSubCommand(this.cmdFactionsAutoClaim);
 		this.addSubCommand(this.cmdFactionsUnclaim);
-		this.addSubCommand(this.cmdFactionsUnclaimall);
 		this.addSubCommand(this.cmdFactionsAccess);
 		this.addSubCommand(this.cmdFactionsRelationAlly);
 		this.addSubCommand(this.cmdFactionsRelationTruce);
@@ -91,14 +99,20 @@ public class CmdFactions extends FCommand
 		this.addSubCommand(this.cmdFactionsRelationEnemy);
 		this.addSubCommand(this.cmdFactionsPerm);
 		this.addSubCommand(this.cmdFactionsFlag);
-		this.addSubCommand(this.cmdFactionsDisband);
+		this.addSubCommand(this.cmdFactionsExpansions);
+		this.addSubCommand(this.cmdFactionsTax);
+		this.addSubCommand(this.cmdFactionsDynmap);
 		this.addSubCommand(this.cmdFactionsAdmin);
+		this.addSubCommand(this.cmdFactionsDisband);
 		this.addSubCommand(this.cmdFactionsPowerBoost);
+		this.addSubCommand(this.cmdFactionsSetpower);
 		this.addSubCommand(this.cmdFactionsVersion);
 		
-		// Misc
-		this.setDesc("The faction base command");
-		this.setHelp("This command contains all faction stuff.");
+		// Deprecated Commands
+		this.addSubCommand(new CmdFactionsXDeprecated(this.cmdFactionsClaim.cmdFactionsClaimAuto, "autoclaim"));
+		this.addSubCommand(new CmdFactionsXDeprecated(this.cmdFactionsUnclaim.cmdFactionsUnclaimAll, "unclaimall"));
+		this.addSubCommand(new CmdFactionsXDeprecated(this.cmdFactionsFlag, "open"));
+		this.addSubCommand(new CmdFactionsXDeprecated(this.cmdFactionsFaction, "show", "who"));
 	}
 	
 	// -------------------------------------------- //

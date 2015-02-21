@@ -2,10 +2,13 @@ package com.massivecraft.factions.cmd;
 
 import com.massivecraft.factions.Factions;
 import com.massivecraft.factions.Perm;
-import com.massivecraft.mcore.cmd.arg.ARBoolean;
-import com.massivecraft.mcore.cmd.req.ReqHasPerm;
+import com.massivecraft.massivecore.MassiveException;
+import com.massivecraft.massivecore.cmd.arg.ARBoolean;
+import com.massivecraft.massivecore.cmd.req.ReqHasPerm;
+import com.massivecraft.massivecore.util.IdUtil;
+import com.massivecraft.massivecore.util.Txt;
 
-public class CmdFactionsAdmin extends FCommand
+public class CmdFactionsAdmin extends FactionsCommand
 {
 	// -------------------------------------------- //
 	// CONSTRUCT
@@ -20,7 +23,6 @@ public class CmdFactionsAdmin extends FCommand
 		this.addOptionalArg("on/off", "flip");
 		
 		// Requirements
-		// this.addRequirements(ReqFactionsEnabled.get());
 		this.addRequirements(ReqHasPerm.get(Perm.ADMIN.node));
 	}
 
@@ -29,23 +31,22 @@ public class CmdFactionsAdmin extends FCommand
 	// -------------------------------------------- //
 	
 	@Override
-	public void perform()
-	{			
+	public void perform() throws MassiveException
+	{
+		// Args
 		Boolean target = this.arg(0, ARBoolean.get(), !msender.isUsingAdminMode());
-		if (target == null) return;
 		
+		// Apply
 		msender.setUsingAdminMode(target);		
 		
-		if (msender.isUsingAdminMode())
-		{
-			msender.msg("<i>You have enabled admin bypass mode.");
-			Factions.get().log(msender.getId() + " has ENABLED admin bypass mode.");
-		}
-		else
-		{
-			msender.msg("<i>You have disabled admin bypass mode.");
-			Factions.get().log(msender.getId() + " DISABLED admin bypass mode.");
-		}
+		// Inform
+		String desc = Txt.parse(msender.isUsingAdminMode() ? "<g>ENABLED" : "<b>DISABLED");
+		
+		String messageYou = Txt.parse("<i>%s %s <i>admin bypass mode.", msender.getDisplayName(msender), desc);
+		String messageLog = Txt.parse("<i>%s %s <i>admin bypass mode.", msender.getDisplayName(IdUtil.getConsole()), desc);
+		
+		msender.sendMessage(messageYou);
+		Factions.get().log(messageLog);
 	}
 	
 }
